@@ -6,7 +6,16 @@ import MarkdownUI
 /// (and its table layouts) being invalidated.
 @MainActor
 final class FlashState: ObservableObject {
-    @Published var id: String?
+    /// Carries a token as well as the section, so that stepping between two
+    /// matches inside the *same* section still registers as a new event. Without
+    /// it the published value never changed, and the document sat there looking
+    /// as though the arrows did nothing at all.
+    struct Pulse: Equatable {
+        let id: String
+        let token: Int
+    }
+
+    @Published var pulse: Pulse?
 }
 
 struct ReaderView: View {
@@ -91,12 +100,8 @@ struct ReaderView: View {
     }
 
     private func startFlash(_ id: String) {
-        flash.id = id
         flashToken += 1
-        let token = flashToken
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
-            if flashToken == token { flash.id = nil }
-        }
+        flash.pulse = FlashState.Pulse(id: id, token: flashToken)
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -177,12 +182,25 @@ private struct FlashBackdrop: View {
     let sectionID: String
     @ObservedObject var state: FlashState
 
+    /// Struck on arrival and then left to fade, so every press of the arrows
+    /// reads as a fresh hit rather than a wash that was already there.
+    @State private var intensity: Double = 0
+
     var body: some View {
         RoundedRectangle(cornerRadius: 10)
-            .fill(Color.accentColor.opacity(state.id == sectionID ? 0.12 : 0))
+            .fill(Color.accentColor.opacity(intensity))
             .padding(.horizontal, -14)
             .padding(.vertical, -8)
-            .animation(.easeOut(duration: 0.35), value: state.id == sectionID)
+            .onChange(of: state.pulse) { _, pulse in
+                guard pulse?.id == sectionID else {
+                    if intensity != 0 {
+                        withAnimation(.easeOut(duration: 0.2)) { intensity = 0 }
+                    }
+                    return
+                }
+                intensity = 0.20
+                withAnimation(.easeOut(duration: 1.2)) { intensity = 0 }
+            }
     }
 }
 
