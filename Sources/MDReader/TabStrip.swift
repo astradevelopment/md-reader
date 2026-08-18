@@ -285,8 +285,11 @@ private struct TabPill: View {
 struct TabTooltipLayer: View {
     @ObservedObject var hover: TabHoverState
 
-    private let cardWidth: CGFloat = 300
-    private let previewHeight: CGFloat = 168
+    private let cardWidth: CGFloat = 400
+    private let previewHeight: CGFloat = 290
+    /// The margins of the little page, so it reads as a document rather than as
+    /// text pressed against a box.
+    private let pageInset: CGFloat = 16
 
     var body: some View {
         GeometryReader { geo in
@@ -305,17 +308,18 @@ struct TabTooltipLayer: View {
     }
 
     private func card(for info: TabHoverState.Info) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 9) {
             Text(info.name)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.primary)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .padding(.horizontal, 2)
 
             if !info.opening.isEmpty {
                 preview(info.opening)
             }
         }
-        .padding(10)
+        .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -327,13 +331,14 @@ struct TabTooltipLayer: View {
     /// The document at a size where a screenful fits in a card, cut off at the
     /// bottom with a fade rather than a hard edge.
     private func preview(_ blocks: [MarkdownDocument.Block]) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 6) {
             ForEach(blocks) { block in
                 Markdown(block.markdown)
-                    .markdownTheme(ThemeCache.reader(fontSize: 7))
+                    .markdownTheme(ThemeCache.reader(fontSize: 8))
             }
         }
-        .frame(width: cardWidth - 20, alignment: .leading)
+        .padding(pageInset)
+        .frame(width: cardWidth - 24, alignment: .leading)
         .frame(height: previewHeight, alignment: .top)
         .clipped()
         .mask(
@@ -347,12 +352,18 @@ struct TabTooltipLayer: View {
                 endPoint: .bottom
             )
         )
-        .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 7))
+        // Applied after the mask, so the page keeps its shape while the text
+        // fades off the bottom of it.
+        .background(Color(nsColor: .textBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
+        )
     }
 
     private func cardHeight(for info: TabHoverState.Info) -> CGFloat {
-        info.opening.isEmpty ? 36 : previewHeight + 50
+        info.opening.isEmpty ? 40 : previewHeight + 55
     }
 
     /// Centred under the tab, nudged inwards so it never runs off either edge.
