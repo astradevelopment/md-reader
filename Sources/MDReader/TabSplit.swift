@@ -17,6 +17,20 @@ enum TabSplit {
         return max(0, Int((room / perTab).rounded(.down)))
     }
 
+    /// The order after dragging `moving` onto `target`: it takes the target's
+    /// place and everything between shifts along, in either direction.
+    static func reorder<ID: Hashable>(ids: [ID], moving: ID, onto target: ID) -> [ID] {
+        guard moving != target,
+              let from = ids.firstIndex(of: moving),
+              let to = ids.firstIndex(of: target)
+        else { return ids }
+
+        var result = ids
+        let dragged = result.remove(at: from)
+        result.insert(dragged, at: to)
+        return result
+    }
+
     /// Splits `ids` in document order, never hiding `selected`.
     static func split<ID: Hashable>(
         ids: [ID],

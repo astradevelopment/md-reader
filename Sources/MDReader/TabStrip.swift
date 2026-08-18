@@ -35,7 +35,8 @@ struct TabStrip: View {
                     fixedWidth: store.documents.count > 1 ? tabWidth : nil,
                     hover: hover,
                     onSelect: { store.select(document.id) },
-                    onClose: { store.close(document.id) }
+                    onClose: { store.close(document.id) },
+                    onDrop: { dragged in store.move(dragged, onto: document.id) }
                 )
             }
 
@@ -172,9 +173,11 @@ private struct TabPill: View {
     let hover: TabHoverState
     let onSelect: () -> Void
     let onClose: () -> Void
+    let onDrop: (UUID) -> Void
 
     @State private var hovering = false
     @State private var closeHovering = false
+    @State private var isDropTarget = false
     @State private var frame: CGRect = .zero
 
     /// Room kept on both sides so the title is centred against the whole tab, not
@@ -220,6 +223,21 @@ private struct TabPill: View {
             Capsule().fill(Color.primary.opacity(fillOpacity))
         )
         .contentShape(Capsule())
+        .overlay(alignment: .leading) {
+            if isDropTarget {
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: 2)
+                    .padding(.vertical, 2)
+            }
+        }
+        // The identifier travels as text; anything else dropped here is ignored.
+        .draggable(id.uuidString)
+        .dropDestination(for: String.self) { items, _ in
+            guard let dragged = items.first.flatMap(UUID.init(uuidString:)) else { return false }
+            onDrop(dragged)
+            return true
+        } isTargeted: { isDropTarget = $0 }
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
         .onHover { isInside in
             hovering = isInside

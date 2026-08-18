@@ -110,6 +110,18 @@ final class DocumentStore: ObservableObject {
         persistSession()
     }
 
+    /// Drops the dragged tab where `target` sits, keeping the order they end up
+    /// in — the session remembers it.
+    func move(_ id: UUID, onto target: UUID) {
+        let current = documents.map(\.id)
+        let wanted = TabSplit.reorder(ids: current, moving: id, onto: target)
+        guard wanted != current else { return }
+
+        let byID = Dictionary(uniqueKeysWithValues: documents.map { ($0.id, $0) })
+        documents = wanted.compactMap { byID[$0] }
+        persistSession()
+    }
+
     func select(_ id: UUID) {
         guard selectedID != id else { return }
         selectedID = id
