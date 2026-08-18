@@ -42,9 +42,6 @@ extension View {
         onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
             layout.reportCluster(key, width: width)
         }
-        // A cluster hidden by a breakpoint must stop claiming its width, or the
-        // tabs would keep making room for something that is no longer there.
-        .onDisappear { layout.reportCluster(key, width: 0) }
     }
 }
 

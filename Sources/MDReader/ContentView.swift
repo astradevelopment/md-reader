@@ -70,6 +70,7 @@ struct ContentView: View {
             SidebarView(
                 document: document,
                 sectionState: sectionState,
+                progressState: progressState,
                 search: search,
                 onSelectHeading: { id in jump(to: id, flash: false) },
                 onSelectMatch: { index in
@@ -143,18 +144,16 @@ struct ContentView: View {
         }
     }
 
-    /// All three capsules in a single toolbar item — search, text size, progress.
+    /// Search and text size, in a single toolbar item.
     ///
     /// As separate items, a narrow window let NSToolbar sweep them into its own
     /// overflow popover, where a glass capsule renders as a mangled control. As
-    /// one item there is nothing to redistribute, and none of the three ever goes
-    /// away: the window's minimum width guarantees room for the widest state, and
-    /// the tabs give way first.
+    /// one item there is nothing to redistribute, and neither ever goes away:
+    /// reading progress moved to the sidebar to leave them the room.
     private var controlClusters: some View {
         HStack(spacing: 8) {
             SearchBar(search: search, onJump: jumpToCurrentMatch)
             FontSizeControl(settings: settings)
-            ProgressPill(state: progressState)
         }
         .measureCluster("controls", into: toolbarLayout)
     }

@@ -220,32 +220,3 @@ struct SearchBar: View {
         onJump()
     }
 }
-
-// MARK: - Progress
-
-struct ProgressPill: View {
-    @ObservedObject var state: ProgressState
-
-    var body: some View {
-        HStack(spacing: 9) {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.18))
-                    Capsule()
-                        .fill(Color.accentColor)
-                        .frame(width: max(2, geo.size.width * state.value))
-                }
-            }
-            .frame(height: 4)
-
-            Text(verbatim: "\(Int(state.value * 100))%")
-                .font(.system(size: 11, design: .rounded).monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 32, alignment: .trailing)
-        }
-        .frame(width: 132)
-        .padding(.horizontal, 8)
-        .toolbarCluster(interactive: false)
-    }
-}

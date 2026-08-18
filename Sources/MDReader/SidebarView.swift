@@ -3,6 +3,9 @@ import SwiftUI
 struct SidebarView: View {
     @ObservedObject var document: MarkdownDocument
     @ObservedObject var sectionState: SectionState
+    /// Passed through unobserved — only the bar itself watches it, so a scroll
+    /// does not redraw the whole outline.
+    let progressState: ProgressState
     @ObservedObject var search: SearchModel
 
     var onSelectHeading: (String) -> Void
@@ -27,16 +30,30 @@ struct SidebarView: View {
     // MARK: - Header
 
     private var header: some View {
-        // Verbatim: the text is already localised, and `Text(String)` would not
-        // look it up a second time anyway.
-        Text(verbatim: headerTitle)
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(.tertiary)
-            .tracking(0.8)
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 8)
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 4) {
+                // Verbatim: the text is already localised, and `Text(String)`
+                // would not look it up a second time anyway.
+                Text(verbatim: headerTitle)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .tracking(0.8)
+
+                if hasDocument, !showingResults {
+                    ProgressReadout(state: progressState)
+                }
+            }
+
+            if hasDocument {
+                ReadingProgressBar(state: progressState)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
     }
+
+    private var hasDocument: Bool { !document.content.isEmpty }
 
     private var headerTitle: String {
         guard showingResults else { return String(localized: "CONTENTS") }
@@ -210,5 +227,37 @@ private struct HeadingRow: View {
 
     private func indent(for level: Int) -> CGFloat {
         CGFloat(max(0, level - 1)) * 12
+    }
+}
+
+
+/// Reading progress, under the outline's heading.
+///
+/// Its own view so that the scroll position — which changes many times a second
+/// — only ever invalidates these few points of the window.
+private struct ProgressReadout: View {
+    @ObservedObject var state: ProgressState
+
+    var body: some View {
+        Text(verbatim: "· \(Int(state.value * 100))%")
+            .font(.system(size: 10, weight: .semibold).monospacedDigit())
+            .foregroundStyle(.tertiary)
+    }
+}
+
+private struct ReadingProgressBar: View {
+    @ObservedObject var state: ProgressState
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.secondary.opacity(0.16))
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: max(2, geo.size.width * state.value))
+            }
+        }
+        .frame(height: 3)
     }
 }
