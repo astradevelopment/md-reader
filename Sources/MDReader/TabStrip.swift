@@ -148,8 +148,8 @@ private struct TabPill: View {
 
             if showsClose {
                 HStack(spacing: 0) {
-                    Spacer(minLength: 0)
-
+                    // Leading edge, the way macOS puts it.
+                    //
                     // Only the active or hovered tab offers a close button, so a
                     // crowded strip stays readable.
                     Image(systemName: "xmark")
@@ -163,8 +163,10 @@ private struct TabPill: View {
                         .opacity(hovering || isSelected ? 1 : 0)
                         .onHover { closeHovering = $0 }
                         .onTapGesture(perform: onClose)
+
+                    Spacer(minLength: 0)
                 }
-                .padding(.trailing, 5)
+                .padding(.leading, 5)
             }
         }
         .frame(height: ToolbarMetrics.contentHeight)

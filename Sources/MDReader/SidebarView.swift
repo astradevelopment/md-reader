@@ -252,9 +252,11 @@ private struct ReadingProgressBar: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.secondary.opacity(0.16))
+                    .fill(Color.secondary.opacity(0.14))
                 Capsule()
-                    .fill(Color.accentColor)
+                    // Grey rather than the accent colour: it reports, it does not
+                    // ask to be looked at.
+                    .fill(Color.secondary.opacity(0.55))
                     .frame(width: max(2, geo.size.width * state.value))
             }
         }
