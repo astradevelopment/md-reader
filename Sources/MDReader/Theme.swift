@@ -22,6 +22,10 @@ extension Theme {
     @MainActor static func mdReader(fontSize: Double) -> Theme {
         Theme()
         .text {
+            // The system face — San Francisco — stated rather than inherited, so a
+            // change of default in the library cannot quietly move the text onto
+            // something else.
+            FontFamily(.system())
             ForegroundColor(.primary)
             FontSize(fontSize)
         }

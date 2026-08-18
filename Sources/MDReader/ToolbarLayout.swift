@@ -11,16 +11,15 @@ final class ToolbarLayout: ObservableObject {
     /// that sits ahead of the tabs.
     private static let chrome: CGFloat = 112
 
-    /// Room always kept for the controls, whatever they currently measure.
+    /// Room always kept for the controls — enough for them at rest, not at their
+    /// widest.
     ///
-    /// They are narrow at rest and wide with the search field open, and reserving
-    /// only what they take *now* is what let the toolbar overflow: the tabs would
-    /// spread into the slack, then search would open with nowhere to go. Worse,
-    /// a cluster in the overflow popover stops being drawn, so it stops reporting
-    /// a width — leaving the tabs no reason to give the space back. Measured at
-    /// its widest — search open, a query typed and the match counter showing — the
-    /// cluster is a little under 400 pt, and this keeps a margin over that.
-    private static let controlsReserve: CGFloat = 470
+    /// Holding back the full 470 pt that an open search field needs left the tabs
+    /// permanently cramped, truncating names of ten characters while half the
+    /// toolbar stood empty. They can afford to give way when search opens, now
+    /// that `ToolbarPriority` guarantees the controls are never what the toolbar
+    /// drops.
+    private static let controlsReserve: CGFloat = 200
 
     @Published private(set) var availableForTabs: CGFloat = 600
     @Published private(set) var detailWidth: CGFloat = 1000

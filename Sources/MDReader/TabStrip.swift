@@ -10,7 +10,7 @@ struct TabStrip: View {
     @ObservedObject var layout: ToolbarLayout
     let hover: TabHoverState
 
-    private static let maxTabWidth: CGFloat = 150
+    private static let maxTabWidth: CGFloat = 240
     private static let minTabWidth: CGFloat = 70
     private static let spacing: CGFloat = 3
     private static let buttonWidth: CGFloat = 24
