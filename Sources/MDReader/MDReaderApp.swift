@@ -37,8 +37,11 @@ struct MDReaderApp: App {
                 }
         }
         .defaultSize(width: 1100, height: 780)
-        // The filename lives in the tab, so the toolbar shows no title of its own.
-        .windowToolbarStyle(.unified(showsTitle: false))
+        // The filename lives in the tab, so no title is shown — but via an empty
+        // title rather than `showsTitle: false`, which measurably breaks
+        // ToolbarSpacer(.flexible) and leaves the right-hand controls stranded
+        // mid-window (606 pt short of the edge, against 8 pt when enabled).
+        .windowToolbarStyle(.unified(showsTitle: true))
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Open…") { store.openPanel() }

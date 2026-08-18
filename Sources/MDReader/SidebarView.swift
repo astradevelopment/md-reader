@@ -8,6 +8,8 @@ struct SidebarView: View {
     var onSelectHeading: (String) -> Void
     var onSelectMatch: (Int) -> Void
 
+    @State private var skipAutoScroll = false
+
     private var showingResults: Bool { search.isPresented && search.hasQuery }
 
     var body: some View {
@@ -53,7 +55,12 @@ struct SidebarView: View {
                             HeadingRow(heading: h, isSelected: sectionState.current == h.id)
                                 .id(h.id)
                                 .contentShape(Rectangle())
-                                .onTapGesture { onSelectHeading(h.id) }
+                                .onTapGesture {
+                                    // The row is already under the pointer; scrolling
+                                    // the list to re-centre it would yank it away.
+                                    skipAutoScroll = true
+                                    onSelectHeading(h.id)
+                                }
                         }
                     }
                     .padding(.horizontal, 8)
@@ -62,9 +69,11 @@ struct SidebarView: View {
                 .scrollContentBackground(.hidden)
                 .onChange(of: sectionState.current) { _, newValue in
                     guard let id = newValue else { return }
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        proxy.scrollTo(id, anchor: .center)
+                    guard !skipAutoScroll else {
+                        skipAutoScroll = false
+                        return
                     }
+                    proxy.scrollTo(id, anchor: .center)
                 }
             }
         }

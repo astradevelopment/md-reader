@@ -33,7 +33,7 @@ struct ContentView: View {
                 toolbarLayout.reportDetailWidth(width)
             }
         }
-        .navigationTitle(store.selected?.fileName ?? "MD Reader")
+        .navigationTitle("")
         .toolbar {
             if !store.isEmpty {
                 tabsItem

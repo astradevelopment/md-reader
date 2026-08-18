@@ -25,6 +25,10 @@ struct ReaderView: View {
     @State private var visibleSectionID: String?
     @State private var flash = FlashState()
     @State private var flashToken = 0
+    /// Raised while a jump is in flight, so the sidebar highlight does not race
+    /// through every heading the scroll passes on the way.
+    @State private var isJumping = false
+    @State private var jumpToken = 0
 
     var body: some View {
         ScrollView {
@@ -53,16 +57,23 @@ struct ReaderView: View {
         .onChange(of: visibleSectionID) { _, newID in
             guard let newID else { return }
             document.lastSectionID = newID
+            guard !isJumping else { return }
             if newID != "__preamble__", newID != sectionState.current {
                 sectionState.current = newID
             }
         }
         .onChange(of: scrollRequest) { _, request in
             guard let request else { return }
-            withAnimation(.easeInOut(duration: 0.25)) {
-                visibleSectionID = request.sectionID
-            }
+            // No animation: the document is rendered lazily, so animating a long
+            // jump would realise — and scroll through — everything in between.
+            isJumping = true
+            jumpToken += 1
+            let token = jumpToken
+            visibleSectionID = request.sectionID
             if request.flash { startFlash(request.sectionID) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                if jumpToken == token { isJumping = false }
+            }
         }
         .onAppear {
             // Restore where this tab was left; a fresh document starts at the top.
