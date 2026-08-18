@@ -67,7 +67,16 @@
 "MD Reader is up to date" = "У вас последняя версия";
 "You have version %@." = "Установлена версия %@.";
 "MD Reader %@ is available" = "Доступна версия MD Reader %@";
-"You have %@. The download opens in your browser; drag the new copy over the old one." = "Установлена %@. Загрузка откроется в браузере — перетащите новую копию поверх старой.";
-"Download" = "Загрузить";
 "Later" = "Позже";
 "Skip This Version" = "Пропустить эту версию";
+
+/* Installing an update */
+"Update and Restart" = "Обновить и перезапустить";
+"You have %@. It will be downloaded, put in place and reopened." = "Установлена %@. Обновление загрузится, встанет на место, и приложение перезапустится.";
+"Downloading MD Reader…" = "Загрузка MD Reader…";
+"The update couldn't be installed" = "Не удалось установить обновление";
+"Open the Download Page" = "Открыть страницу загрузки";
+"The download did not complete." = "Загрузка не завершилась.";
+"The disk image did not contain an app." = "В образе не оказалось приложения.";
+"The downloaded app looks incomplete." = "Загруженное приложение выглядит неполным.";
+"%@ failed." = "Команда %@ завершилась с ошибкой.";

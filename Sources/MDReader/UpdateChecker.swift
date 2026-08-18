@@ -119,21 +119,154 @@ enum UpdateChecker {
         let alert = NSAlert()
         alert.messageText = String(localized: "MD Reader \(release.version) is available")
         alert.informativeText = String(
-            localized: "You have \(currentVersion). The download opens in your browser; drag the new copy over the old one."
+            localized: "You have \(currentVersion). It will be downloaded, put in place and reopened."
         )
         alert.alertStyle = .informational
-        alert.addButton(withTitle: String(localized: "Download"))
+        alert.addButton(withTitle: String(localized: "Update and Restart"))
         alert.addButton(withTitle: String(localized: "Later"))
         alert.addButton(withTitle: String(localized: "Skip This Version"))
 
         switch alert.runModal() {
         case .alertFirstButtonReturn:
-            NSWorkspace.shared.open(release.download ?? release.page)
+            guard let download = release.download else {
+                NSWorkspace.shared.open(release.page)
+                return
+            }
+            Task { await install(from: download, page: release.page) }
         case .alertThirdButtonReturn:
             UserDefaults.standard.set(release.version, forKey: skippedKey)
         default:
             break
         }
+    }
+
+    // MARK: - Installing
+
+    /// Fetches the image, takes the app out of it, and hands the swap to a script
+    /// that outlives this process — a running bundle cannot replace itself.
+    private static func install(from download: URL, page: URL) async {
+        let progress = ProgressWindow(
+            message: String(localized: "Downloading MD Reader…")
+        )
+        progress.show()
+
+        do {
+            let staged = try await stageUpdate(from: download)
+            progress.close()
+            try relaunch(replacing: Bundle.main.bundleURL, with: staged)
+        } catch {
+            progress.close()
+            let alert = NSAlert()
+            alert.messageText = String(localized: "The update couldn't be installed")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: String(localized: "Open the Download Page"))
+            alert.addButton(withTitle: String(localized: "Later"))
+            if alert.runModal() == .alertFirstButtonReturn {
+                NSWorkspace.shared.open(page)
+            }
+        }
+    }
+
+    private struct UpdateFailure: LocalizedError {
+        let errorDescription: String?
+        init(_ text: String) { errorDescription = text }
+    }
+
+    /// Downloads the image, mounts it, copies the app out, unmounts. The copy is
+    /// what gets installed, so the image can be released straight away.
+    private static func stageUpdate(from download: URL) async throws -> URL {
+        let (temporary, response) = try await URLSession.shared.download(from: download)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw UpdateFailure(String(localized: "The download did not complete."))
+        }
+
+        let work = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("MDReaderUpdate-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+
+        let image = work.appendingPathComponent("update.dmg")
+        try FileManager.default.moveItem(at: temporary, to: image)
+
+        let mount = work.appendingPathComponent("mount")
+        try run("/usr/bin/hdiutil", ["attach", "-quiet", "-nobrowse", "-readonly",
+                                     "-mountpoint", mount.path, image.path])
+        defer { _ = try? run("/usr/bin/hdiutil", ["detach", "-quiet", mount.path]) }
+
+        guard let app = try FileManager.default
+            .contentsOfDirectory(at: mount, includingPropertiesForKeys: nil)
+            .first(where: { $0.pathExtension == "app" })
+        else {
+            throw UpdateFailure(String(localized: "The disk image did not contain an app."))
+        }
+
+        let staged = work.appendingPathComponent(app.lastPathComponent)
+        try run("/usr/bin/ditto", [app.path, staged.path])
+
+        // The quarantine flag this download may have picked up would stop the very
+        // update it belongs to. It is cleared here, on a build fetched from the
+        // project's own releases at the user's request.
+        _ = try? run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", staged.path])
+
+        guard FileManager.default.fileExists(
+            atPath: staged.appendingPathComponent("Contents/MacOS").path
+        ) else {
+            throw UpdateFailure(String(localized: "The downloaded app looks incomplete."))
+        }
+        return staged
+    }
+
+    /// A bundle cannot overwrite itself while it is running, so the swap is left
+    /// to a script that waits for this process to go, keeps the old copy until
+    /// the new one is in place, and puts it back if anything fails.
+    private static func relaunch(replacing target: URL, with staged: URL) throws {
+        let script = staged.deletingLastPathComponent().appendingPathComponent("swap.sh")
+        let body = """
+        #!/bin/bash
+        target="$1"; staged="$2"; owner="$3"
+        while kill -0 "$owner" 2>/dev/null; do sleep 0.2; done
+        backup="${target}.previous"
+        rm -rf "$backup"
+        [ -d "$target" ] && mv "$target" "$backup"
+        if /usr/bin/ditto "$staged" "$target"; then
+            rm -rf "$backup"
+        else
+            rm -rf "$target"
+            [ -d "$backup" ] && mv "$backup" "$target"
+        fi
+        /usr/bin/open "$target"
+        rm -rf "$(dirname "$staged")"
+        """
+        try body.write(to: script, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755], ofItemAtPath: script.path
+        )
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = [
+            script.path, target.path, staged.path, String(ProcessInfo.processInfo.processIdentifier),
+        ]
+        try process.run()
+
+        NSApp.terminate(nil)
+    }
+
+    @discardableResult
+    private static func run(_ tool: String, _ arguments: [String]) throws -> Int32 {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: tool)
+        process.arguments = arguments
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            throw UpdateFailure(
+                String(localized: "\(URL(fileURLWithPath: tool).lastPathComponent) failed.")
+            )
+        }
+        return process.terminationStatus
     }
 
     private static func report(title: String, body: String) {

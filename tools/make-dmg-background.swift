@@ -12,7 +12,7 @@ let outDir = CommandLine.arguments.dropFirst().first ?? "build/dmg"
 try? FileManager.default.createDirectory(atPath: outDir, withIntermediateDirectories: true)
 
 let width = 660
-let height = 470
+let height = 420
 
 /// Where the two icons sit, in window points measured from the top-left.
 let appCentre = CGPoint(x: 170, y: 190)

@@ -67,7 +67,16 @@
 "MD Reader is up to date" = "MD Reader is up to date";
 "You have version %@." = "You have version %@.";
 "MD Reader %@ is available" = "MD Reader %@ is available";
-"You have %@. The download opens in your browser; drag the new copy over the old one." = "You have %@. The download opens in your browser; drag the new copy over the old one.";
-"Download" = "Download";
 "Later" = "Later";
 "Skip This Version" = "Skip This Version";
+
+/* Installing an update */
+"Update and Restart" = "Update and Restart";
+"You have %@. It will be downloaded, put in place and reopened." = "You have %@. It will be downloaded, put in place and reopened.";
+"Downloading MD Reader…" = "Downloading MD Reader…";
+"The update couldn't be installed" = "The update couldn't be installed";
+"Open the Download Page" = "Open the Download Page";
+"The download did not complete." = "The download did not complete.";
+"The disk image did not contain an app." = "The disk image did not contain an app.";
+"The downloaded app looks incomplete." = "The downloaded app looks incomplete.";
+"%@ failed." = "%@ failed.";

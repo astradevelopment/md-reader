@@ -31,9 +31,6 @@ mkdir -p "$STAGE/.background"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 cp build/dmg/background.tiff "$STAGE/.background/background.tiff"
-# Gatekeeper will stop an ad-hoc signed app on any Mac but this one, so the
-# way past it travels with the image rather than in a covering message.
-cp Resources/first-launch.txt "$STAGE/Если не открывается.txt"
 
 # Room for the contents plus slack for the filesystem's own overhead.
 SIZE_KB=$(du -sk "$STAGE" | cut -f1)
@@ -56,7 +53,7 @@ tell application "Finder"
         set current view of container window to icon view
         set toolbar visible of container window to false
         set statusbar visible of container window to false
-        set the bounds of container window to {200, 140, 860, 610}
+        set the bounds of container window to {200, 140, 860, 560}
         set opts to the icon view options of container window
         set arrangement of opts to not arranged
         set icon size of opts to 96
@@ -64,7 +61,6 @@ tell application "Finder"
         set background picture of opts to file ".background:background.tiff"
         set position of item "$APP" of container window to {170, 190}
         set position of item "Applications" of container window to {490, 190}
-        set position of item "Если не открывается.txt" of container window to {330, 330}
         close
         open
         update without registering applications
