@@ -297,10 +297,10 @@ struct TabTooltipLayer: View {
             if let info = hover.info {
                 card(for: info)
                     .frame(width: cardWidth)
-                    .position(
-                        x: anchorX(info: info, in: geo),
-                        y: cardHeight(for: info) / 2 + 10
-                    )
+                    // Offset from the top-left rather than positioned by centre:
+                    // the gap under the tab is then exact, instead of depending on
+                    // a guess at how tall the card turned out.
+                    .offset(x: cardX(info: info, in: geo), y: gapBelowTab)
                     .transition(.opacity)
             }
         }
@@ -363,14 +363,13 @@ struct TabTooltipLayer: View {
         )
     }
 
-    private func cardHeight(for info: TabHoverState.Info) -> CGFloat {
-        info.opening.isEmpty ? 40 : previewHeight + 55
-    }
+    private var gapBelowTab: CGFloat { 4 }
 
     /// Centred under the tab, nudged inwards so it never runs off either edge.
-    private func anchorX(info: TabHoverState.Info, in geo: GeometryProxy) -> CGFloat {
-        let local = info.anchor.midX - geo.frame(in: .global).minX
-        let margin = cardWidth / 2 + 8
-        return min(max(local, margin), max(margin, geo.size.width - margin))
+    private func cardX(info: TabHoverState.Info, in geo: GeometryProxy) -> CGFloat {
+        let centre = info.anchor.midX - geo.frame(in: .global).minX
+        let leading = centre - cardWidth / 2
+        let limit = max(8, geo.size.width - cardWidth - 8)
+        return min(max(leading, 8), limit)
     }
 }
