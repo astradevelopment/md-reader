@@ -12,6 +12,10 @@ struct SidebarView: View {
     var onSelectMatch: (Int) -> Void
 
     @State private var skipAutoScroll = false
+    /// The outline scrolls itself to follow the document, and that alone makes
+    /// macOS flash the overlay scroller. Indicators are therefore tied to the
+    /// pointer: they exist while you are in here, and never while you are reading.
+    @State private var pointerInside = false
 
     private var showingResults: Bool { search.isPresented && search.hasQuery }
 
@@ -25,7 +29,10 @@ struct SidebarView: View {
                 contents
             }
         }
+        .onHover { pointerInside = $0 }
     }
+
+    private var indicators: ScrollIndicatorVisibility { pointerInside ? .automatic : .never }
 
     // MARK: - Header
 
@@ -91,6 +98,7 @@ struct SidebarView: View {
                     .padding(.bottom, 12)
                 }
                 .scrollContentBackground(.hidden)
+                .scrollIndicators(indicators)
                 .onChange(of: sectionState.current) { _, newValue in
                     guard let id = newValue else { return }
                     guard !skipAutoScroll else {
@@ -124,6 +132,7 @@ struct SidebarView: View {
                     .padding(.bottom, 12)
                 }
                 .scrollContentBackground(.hidden)
+                .scrollIndicators(indicators)
                 .onChange(of: search.currentIndex) { _, index in
                     withAnimation(.easeInOut(duration: 0.2)) {
                         proxy.scrollTo(index, anchor: .center)
