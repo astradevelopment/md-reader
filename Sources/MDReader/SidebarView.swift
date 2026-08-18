@@ -25,6 +25,8 @@ struct SidebarView: View {
                 contents
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(SidebarBackdrop())
     }
 
     // MARK: - Header
@@ -230,7 +232,18 @@ private struct HeadingRow: View {
 }
 
 
-/// Reading progress, under the outline's heading.
+/// The same Liquid Glass the toolbar controls sit on, behind the outline.
+private struct SidebarBackdrop: View {
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            Color.clear.glassEffect(.regular, in: Rectangle())
+        } else {
+            Rectangle().fill(.ultraThinMaterial)
+        }
+    }
+}
+
+/// Reading progress, alongside the outline's heading.
 ///
 /// Its own view so that the scroll position — which changes many times a second
 /// — only ever invalidates these few points of the window.
@@ -252,14 +265,16 @@ private struct ReadingProgressBar: View {
 
     var body: some View {
         GeometryReader { geo in
-            Capsule()
-                // Grey rather than the accent colour, at the same weight as a
-                // selected tab: it reports, it does not ask to be looked at.
-                .fill(Color.primary.opacity(0.17))
-                .frame(width: max(3, geo.size.width * state.value))
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.secondary.opacity(0.18))
+                Capsule()
+                    // Grey rather than the accent colour: it reports, it does not
+                    // ask to be looked at.
+                    .fill(Color.secondary.opacity(0.5))
+                    .frame(width: max(3, geo.size.width * state.value))
+            }
         }
-        .frame(height: 6)
-        // The same glass the tabs sit on, so the sidebar shows through it.
-        .glassCapsule()
+        .frame(height: 4)
     }
 }
