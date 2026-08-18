@@ -135,6 +135,10 @@ private struct TabPill: View {
                 .truncationMode(.tail)
 
             if showsClose {
+                // Pushes the close button to the trailing edge, so a short name
+                // does not leave it floating in the middle of a fixed-width tab.
+                Spacer(minLength: 2)
+
                 // Only the active or hovered tab offers a close button, so a
                 // crowded strip stays readable.
                 Image(systemName: "xmark")
@@ -151,7 +155,7 @@ private struct TabPill: View {
             }
         }
         .padding(.leading, 10)
-        .padding(.trailing, showsClose ? 4 : 10)
+        .padding(.trailing, showsClose ? 5 : 10)
         .frame(height: ToolbarMetrics.contentHeight)
         .frame(width: fixedWidth)
         .frame(minWidth: fixedWidth == nil ? 60 : nil, maxWidth: fixedWidth == nil ? 220 : nil)

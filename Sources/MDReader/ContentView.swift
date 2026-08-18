@@ -126,6 +126,10 @@ struct ContentView: View {
     @ToolbarContentBuilder
     private var toolbarControls: some ToolbarContent {
         if #available(macOS 26.0, *) {
+            // Without this the right-hand clusters trail the tabs instead of
+            // sitting at the window's edge.
+            ToolbarSpacer(.flexible, placement: .primaryAction)
+
             ToolbarItem(placement: .primaryAction) {
                 SearchBar(search: search, onJump: jumpToCurrentMatch)
                     .measureCluster("search", into: toolbarLayout)
