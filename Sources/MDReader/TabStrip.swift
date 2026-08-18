@@ -14,11 +14,15 @@ struct TabStrip: View {
     private static let minTabWidth: CGFloat = 70
     private static let spacing: CGFloat = 3
     private static let buttonWidth: CGFloat = 24
+    private static let menuWidth: CGFloat = 30
 
-    /// Tabs are what gives way when the toolbar runs short: they narrow first and
-    /// only then start collapsing into the overflow menu.
+    /// Tabs are what gives way when the toolbar runs short: they narrow first —
+    /// sharing what room there is between however many are open — and only then
+    /// start collapsing into the overflow menu.
     private var tabWidth: CGFloat {
-        min(Self.maxTabWidth, max(Self.minTabWidth, layout.availableForTabs - 60))
+        let room = layout.availableForTabs - Self.buttonWidth - Self.spacing
+        let share = room / CGFloat(max(1, store.documents.count))
+        return min(Self.maxTabWidth, max(Self.minTabWidth, share - Self.spacing))
     }
 
     var body: some View {
@@ -51,12 +55,14 @@ struct TabStrip: View {
         .animation(.snappy(duration: 0.2), value: store.documents.count)
     }
 
-    private var capacity: Int {
-        TabSplit.capacity(
+    private var visibleCount: Int {
+        TabSplit.fitting(
+            count: store.documents.count,
             available: layout.availableForTabs,
             tabWidth: tabWidth,
             spacing: Self.spacing,
-            buttonWidth: Self.buttonWidth
+            buttonWidth: Self.buttonWidth,
+            menuWidth: Self.menuWidth
         )
     }
 
@@ -65,7 +71,7 @@ struct TabStrip: View {
         let ids = TabSplit.split(
             ids: documents.map(\.id),
             selected: store.selectedID,
-            capacity: capacity
+            visible: visibleCount
         )
         let visible = Set(ids.visible)
         return (

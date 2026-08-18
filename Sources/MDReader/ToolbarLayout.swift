@@ -26,7 +26,14 @@ final class ToolbarLayout: ObservableObject {
 
     private var controlsWidth: CGFloat = 0
 
+    /// The narrowest the pane can honestly be: the window stops at 960 pt and the
+    /// sidebar at 320. Anything smaller is a half-built layout reporting itself
+    /// mid-pass — believing it hides every tab behind the overflow menu while the
+    /// window is plainly wide.
+    private static let plausibleMinimum: CGFloat = 240
+
     func reportDetailWidth(_ width: CGFloat) {
+        guard width > Self.plausibleMinimum else { return }
         guard abs(detailWidth - width) > 0.5 else { return }
         detailWidth = width
         recompute()

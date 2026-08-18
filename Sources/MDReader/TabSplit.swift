@@ -4,17 +4,30 @@ import CoreGraphics
 /// the overflow menu. Pure and free of SwiftUI so it can be reasoned about — and
 /// tested — on its own.
 enum TabSplit {
-    /// How many tabs fit in `available`, given the trailing "open" button.
-    static func capacity(
+    /// How many tabs to show.
+    ///
+    /// Two passes, because the overflow menu only exists if something overflows:
+    /// first how many fit without it, and only if that is not all of them, how
+    /// many fit once it takes its place. Charging a whole tab's width for the
+    /// menu — which is a chevron and a number — is what hid tabs while there was
+    /// plainly room for them.
+    static func fitting(
+        count: Int,
         available: CGFloat,
         tabWidth: CGFloat,
         spacing: CGFloat,
-        buttonWidth: CGFloat
+        buttonWidth: CGFloat,
+        menuWidth: CGFloat
     ) -> Int {
         let room = available - buttonWidth - spacing
         let perTab = tabWidth + spacing
-        guard perTab > 0 else { return 0 }
-        return max(0, Int((room / perTab).rounded(.down)))
+        guard perTab > 0, count > 0 else { return 0 }
+
+        let withoutMenu = Int((room / perTab).rounded(.down))
+        if count <= withoutMenu { return count }
+
+        let withMenu = Int(((room - menuWidth - spacing) / perTab).rounded(.down))
+        return max(0, min(count, withMenu))
     }
 
     /// The order after dragging `moving` onto `target`: it takes the target's
@@ -35,14 +48,11 @@ enum TabSplit {
     static func split<ID: Hashable>(
         ids: [ID],
         selected: ID?,
-        capacity: Int
+        visible slots: Int
     ) -> (visible: [ID], overflow: [ID]) {
-        guard ids.count > capacity else { return (ids, []) }
-
-        // One slot is spent on the overflow menu itself. With nothing left over,
-        // every tab goes into that menu rather than pushing the toolbar's own
-        // controls into the system overflow.
-        let slots = max(0, capacity - 1)
+        guard ids.count > slots else { return (ids, []) }
+        // Nothing fits: everything goes into the menu rather than pushing the
+        // toolbar's own controls into the system overflow.
         guard slots > 0 else { return ([], ids) }
 
         var visible = Set(ids.prefix(slots))
