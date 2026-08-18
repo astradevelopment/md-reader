@@ -11,9 +11,17 @@ final class ToolbarLayout: ObservableObject {
     private static let chrome: CGFloat = 72
 
     @Published private(set) var availableForTabs: CGFloat = 600
+    @Published private(set) var detailWidth: CGFloat = 1000
 
-    private var detailWidth: CGFloat = 1000
     private var clusters: [String: CGFloat] = [:]
+
+    // Which clusters still fit, dropped widest-luxury first. The thresholds are
+    // set against the range the pane can actually reach: the window will not go
+    // below 820 pt, so the pane only gets tight when the sidebar is dragged wide,
+    // bottoming out near 400 pt.
+    var showsSearch: Bool { detailWidth >= 420 }
+    var showsFontSize: Bool { detailWidth >= 500 }
+    var showsProgress: Bool { detailWidth >= 620 }
 
     func reportDetailWidth(_ width: CGFloat) {
         guard abs(detailWidth - width) > 0.5 else { return }
@@ -30,7 +38,9 @@ final class ToolbarLayout: ObservableObject {
     private func recompute() {
         let controls = clusters.values.reduce(0, +)
         let value = max(120, detailWidth - controls - Self.chrome)
-        guard abs(value - availableForTabs) > 1 else { return }
+        // A coarse threshold: the search field animates its width open and shut,
+        // and republishing every frame of that would churn the whole toolbar.
+        guard abs(value - availableForTabs) > 8 else { return }
         availableForTabs = value
     }
 }
@@ -40,6 +50,9 @@ extension View {
         onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
             layout.reportCluster(key, width: width)
         }
+        // A cluster hidden by a breakpoint must stop claiming its width, or the
+        // tabs would keep making room for something that is no longer there.
+        .onDisappear { layout.reportCluster(key, width: 0) }
     }
 }
 

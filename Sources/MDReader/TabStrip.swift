@@ -180,8 +180,9 @@ private struct TabPill: View {
     }
 
     private var fillOpacity: Double {
-        if isSelected { return 0.11 }
-        return hovering ? 0.05 : 0
+        // Solid enough that the title reads clearly against the toolbar's glass.
+        if isSelected { return 0.17 }
+        return hovering ? 0.06 : 0
     }
 }
 

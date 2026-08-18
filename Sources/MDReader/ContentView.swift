@@ -13,7 +13,9 @@ struct ContentView: View {
 
     @State private var scrollRequest: ScrollRequest?
     @State private var scrollToken = 0
-    @State private var toolbarLayout = ToolbarLayout()
+    /// Observed, unlike the other helpers: the toolbar's own contents depend on
+    /// how much room is left.
+    @StateObject private var toolbarLayout = ToolbarLayout()
     @State private var tabHover = TabHoverState()
 
     var body: some View {
@@ -126,41 +128,40 @@ struct ContentView: View {
     @ToolbarContentBuilder
     private var toolbarControls: some ToolbarContent {
         if #available(macOS 26.0, *) {
-            // Without this the right-hand clusters trail the tabs instead of
-            // sitting at the window's edge.
+            // Without this the clusters trail the tabs instead of sitting at the
+            // window's edge.
             ToolbarSpacer(.flexible, placement: .primaryAction)
 
             ToolbarItem(placement: .primaryAction) {
-                SearchBar(search: search, onJump: jumpToCurrentMatch)
-                    .measureCluster("search", into: toolbarLayout)
-            }
-            .sharedBackgroundVisibility(.hidden)
-
-            ToolbarSpacer(.fixed, placement: .primaryAction)
-
-            ToolbarItem(placement: .primaryAction) {
-                FontSizeControl(settings: settings)
-                    .measureCluster("fontSize", into: toolbarLayout)
-            }
-            .sharedBackgroundVisibility(.hidden)
-
-            ToolbarSpacer(.fixed, placement: .primaryAction)
-
-            ToolbarItem(placement: .primaryAction) {
-                ProgressPill(state: progressState)
-                    .measureCluster("progress", into: toolbarLayout)
+                controlClusters
             }
             .sharedBackgroundVisibility(.hidden)
         } else {
-            ToolbarItemGroup(placement: .primaryAction) {
-                SearchBar(search: search, onJump: jumpToCurrentMatch)
-                    .measureCluster("search", into: toolbarLayout)
-                FontSizeControl(settings: settings)
-                    .measureCluster("fontSize", into: toolbarLayout)
-                ProgressPill(state: progressState)
-                    .measureCluster("progress", into: toolbarLayout)
+            ToolbarItem(placement: .primaryAction) {
+                controlClusters
             }
         }
+    }
+
+    /// All three capsules in a single toolbar item.
+    ///
+    /// As separate items, a narrow window let NSToolbar sweep them into its own
+    /// overflow popover, where a glass capsule renders as a mangled control. One
+    /// item leaves the decision here: clusters drop out on their own, widest
+    /// luxury first, before the toolbar ever has cause to overflow.
+    private var controlClusters: some View {
+        HStack(spacing: 8) {
+            if toolbarLayout.showsSearch {
+                SearchBar(search: search, onJump: jumpToCurrentMatch)
+            }
+            if toolbarLayout.showsFontSize {
+                FontSizeControl(settings: settings)
+            }
+            if toolbarLayout.showsProgress {
+                ProgressPill(state: progressState)
+            }
+        }
+        .measureCluster("controls", into: toolbarLayout)
     }
 
     // MARK: - Actions
