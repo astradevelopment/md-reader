@@ -15,7 +15,7 @@ where you are. MD Reader is built around reading one long document at a time.
 - **Outline sidebar** — every heading, nested, tracking your position as you scroll.
 - **Tabs in the toolbar row** — several documents in one window, browser style,
   draggable into whatever order you like, each keeping its own scroll position.
-  The tab *is* the title.
+  The tab *is* the title, and hovering one shows the opening of that document.
 - **Session restore** — reopens the files you had open, with a recents list on the
   start screen.
 - **Search** — full-text find, with matches and their surrounding snippets in the

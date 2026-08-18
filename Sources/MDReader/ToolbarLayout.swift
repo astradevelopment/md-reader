@@ -74,12 +74,15 @@ final class TabHoverState: ObservableObject {
         let id: UUID
         let name: String
         let anchor: CGRect
+        /// The opening of the document, for the preview. Already parsed, so
+        /// showing it costs no more than drawing it.
+        let opening: [MarkdownDocument.Block]
     }
 
     @Published var info: Info?
 
-    func enter(id: UUID, name: String, anchor: CGRect) {
-        info = Info(id: id, name: name, anchor: anchor)
+    func enter(id: UUID, name: String, anchor: CGRect, opening: [MarkdownDocument.Block]) {
+        info = Info(id: id, name: name, anchor: anchor, opening: opening)
     }
 
     func leave(id: UUID) {

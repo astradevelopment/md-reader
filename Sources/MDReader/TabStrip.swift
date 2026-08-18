@@ -1,4 +1,5 @@
 import SwiftUI
+import MarkdownUI
 
 /// Browser-style tabs, living in the toolbar row itself — the tab *is* the title.
 ///
@@ -41,6 +42,8 @@ struct TabStrip: View {
                     showsClose: store.documents.count > 1,
                     fixedWidth: store.documents.count > 1 ? tabWidth : nil,
                     hover: hover,
+                    // Enough of the document to recognise it by, no more.
+                    opening: Array(document.blocks.prefix(5)),
                     onSelect: { store.select(document.id) },
                     onClose: { store.close(document.id) },
                     onDrop: { dragged in store.move(dragged, onto: document.id) }
@@ -186,6 +189,7 @@ private struct TabPill: View {
     let showsClose: Bool
     let fixedWidth: CGFloat?
     let hover: TabHoverState
+    let opening: [MarkdownDocument.Block]
     let onSelect: () -> Void
     let onClose: () -> Void
     let onDrop: (UUID) -> Void
@@ -257,7 +261,7 @@ private struct TabPill: View {
         .onHover { isInside in
             hovering = isInside
             if isInside {
-                hover.enter(id: id, name: fullName, anchor: frame)
+                hover.enter(id: id, name: fullName, anchor: frame, opening: opening)
             } else {
                 hover.leave(id: id)
             }
@@ -272,7 +276,8 @@ private struct TabPill: View {
     }
 }
 
-/// The full filename, shown the instant the pointer lands on a tab.
+/// A glance at the document under the pointer: its name, and the first of it
+/// rendered small.
 ///
 /// A sibling of the document rather than an overlay on it, so hovering a tab
 /// never invalidates the reader. Positioned from the window coordinates the tab
@@ -280,22 +285,17 @@ private struct TabPill: View {
 struct TabTooltipLayer: View {
     @ObservedObject var hover: TabHoverState
 
+    private let cardWidth: CGFloat = 300
+    private let previewHeight: CGFloat = 168
+
     var body: some View {
         GeometryReader { geo in
             if let info = hover.info {
-                Text(info.name)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(.regularMaterial, in: Capsule())
-                    .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
-                    .shadow(color: .black.opacity(0.16), radius: 6, y: 2)
-                    .fixedSize()
+                card(for: info)
+                    .frame(width: cardWidth)
                     .position(
                         x: anchorX(info: info, in: geo),
-                        y: 20
+                        y: cardHeight(for: info) / 2 + 10
                     )
                     .transition(.opacity)
             }
@@ -304,9 +304,61 @@ struct TabTooltipLayer: View {
         .animation(.easeOut(duration: 0.12), value: hover.info)
     }
 
+    private func card(for info: TabHoverState.Info) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(info.name)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            if !info.opening.isEmpty {
+                preview(info.opening)
+            }
+        }
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
+    }
+
+    /// The document at a size where a screenful fits in a card, cut off at the
+    /// bottom with a fade rather than a hard edge.
+    private func preview(_ blocks: [MarkdownDocument.Block]) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            ForEach(blocks) { block in
+                Markdown(block.markdown)
+                    .markdownTheme(ThemeCache.reader(fontSize: 7))
+            }
+        }
+        .frame(width: cardWidth - 20, alignment: .leading)
+        .frame(height: previewHeight, alignment: .top)
+        .clipped()
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black, location: 0.78),
+                    .init(color: .clear, location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 7))
+    }
+
+    private func cardHeight(for info: TabHoverState.Info) -> CGFloat {
+        info.opening.isEmpty ? 36 : previewHeight + 50
+    }
+
     /// Centred under the tab, nudged inwards so it never runs off either edge.
     private func anchorX(info: TabHoverState.Info, in geo: GeometryProxy) -> CGFloat {
         let local = info.anchor.midX - geo.frame(in: .global).minX
-        return min(max(local, 110), max(110, geo.size.width - 110))
+        let margin = cardWidth / 2 + 8
+        return min(max(local, margin), max(margin, geo.size.width - margin))
     }
 }
