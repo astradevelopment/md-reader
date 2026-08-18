@@ -30,18 +30,17 @@ struct SidebarView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 4) {
-                // Verbatim: the text is already localised, and `Text(String)`
-                // would not look it up a second time anyway.
-                Text(verbatim: headerTitle)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                    .tracking(0.8)
+        HStack(spacing: 8) {
+            // Verbatim: the text is already localised, and `Text(String)` would
+            // not look it up a second time anyway.
+            Text(verbatim: headerTitle)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.tertiary)
+                .tracking(0.8)
+                .fixedSize()
 
-                if hasDocument, !showingResults {
-                    ProgressReadout(state: progressState)
-                }
+            if hasDocument, !showingResults {
+                ProgressReadout(state: progressState)
             }
 
             if hasDocument {
@@ -242,6 +241,9 @@ private struct ProgressReadout: View {
         Text(verbatim: "· \(Int(state.value * 100))%")
             .font(.system(size: 10, weight: .semibold).monospacedDigit())
             .foregroundStyle(.tertiary)
+            // Fixed width: otherwise the bar beside it would shuffle sideways
+            // every time the number gained or lost a digit.
+            .frame(width: 34, alignment: .leading)
     }
 }
 
@@ -250,16 +252,14 @@ private struct ReadingProgressBar: View {
 
     var body: some View {
         GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.secondary.opacity(0.14))
-                Capsule()
-                    // Grey rather than the accent colour: it reports, it does not
-                    // ask to be looked at.
-                    .fill(Color.secondary.opacity(0.55))
-                    .frame(width: max(2, geo.size.width * state.value))
-            }
+            Capsule()
+                // Grey rather than the accent colour, at the same weight as a
+                // selected tab: it reports, it does not ask to be looked at.
+                .fill(Color.primary.opacity(0.17))
+                .frame(width: max(3, geo.size.width * state.value))
         }
-        .frame(height: 3)
+        .frame(height: 6)
+        // The same glass the tabs sit on, so the sidebar shows through it.
+        .glassCapsule()
     }
 }
