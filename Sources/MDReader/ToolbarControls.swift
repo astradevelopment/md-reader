@@ -161,7 +161,11 @@ struct SearchBar: View {
                     Text(verbatim: counterText)
                         .font(.system(size: 11, design: .rounded).monospacedDigit())
                         .foregroundStyle(.secondary)
-                        .frame(minWidth: 40, alignment: .trailing)
+                        .lineLimit(1)
+                        // Fixed, not a minimum: "312/314" is far wider than "1/9",
+                        // and a cluster that can grow past what the toolbar has
+                        // reserved for it is a cluster the toolbar takes away.
+                        .frame(width: 62, alignment: .trailing)
 
                     CapsuleIconButton(
                         systemName: "chevron.up",

@@ -18,8 +18,9 @@ final class ToolbarLayout: ObservableObject {
     /// spread into the slack, then search would open with nowhere to go. Worse,
     /// a cluster in the overflow popover stops being drawn, so it stops reporting
     /// a width — leaving the tabs no reason to give the space back. Measured at
-    /// its widest, search open with matches, the cluster is 394 pt.
-    private static let controlsReserve: CGFloat = 400
+    /// its widest — search open, a query typed and the match counter showing — the
+    /// cluster is a little under 400 pt, and this keeps a margin over that.
+    private static let controlsReserve: CGFloat = 470
 
     @Published private(set) var availableForTabs: CGFloat = 600
     @Published private(set) var detailWidth: CGFloat = 1000
