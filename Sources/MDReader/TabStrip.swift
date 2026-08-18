@@ -126,36 +126,40 @@ private struct TabPill: View {
     @State private var closeHovering = false
     @State private var frame: CGRect = .zero
 
+    /// Room kept on both sides so the title is centred against the whole tab, not
+    /// against whatever the close button leaves over.
+    private var sideInset: CGFloat { showsClose ? 22 : 10 }
+
     var body: some View {
-        HStack(spacing: 4) {
+        ZStack {
             Text(title)
                 .font(.system(size: 11, weight: isSelected ? .medium : .regular))
                 .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .padding(.horizontal, sideInset)
 
             if showsClose {
-                // Pushes the close button to the trailing edge, so a short name
-                // does not leave it floating in the middle of a fixed-width tab.
-                Spacer(minLength: 2)
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
 
-                // Only the active or hovered tab offers a close button, so a
-                // crowded strip stays readable.
-                Image(systemName: "xmark")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 15, height: 15)
-                    .background(
-                        Circle().fill(Color.primary.opacity(closeHovering ? 0.16 : 0))
-                    )
-                    .contentShape(Circle())
-                    .opacity(hovering || isSelected ? 1 : 0)
-                    .onHover { closeHovering = $0 }
-                    .onTapGesture(perform: onClose)
+                    // Only the active or hovered tab offers a close button, so a
+                    // crowded strip stays readable.
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 15, height: 15)
+                        .background(
+                            Circle().fill(Color.primary.opacity(closeHovering ? 0.16 : 0))
+                        )
+                        .contentShape(Circle())
+                        .opacity(hovering || isSelected ? 1 : 0)
+                        .onHover { closeHovering = $0 }
+                        .onTapGesture(perform: onClose)
+                }
+                .padding(.trailing, 5)
             }
         }
-        .padding(.leading, 10)
-        .padding(.trailing, showsClose ? 5 : 10)
         .frame(height: ToolbarMetrics.contentHeight)
         .frame(width: fixedWidth)
         .frame(minWidth: fixedWidth == nil ? 60 : nil, maxWidth: fixedWidth == nil ? 220 : nil)
