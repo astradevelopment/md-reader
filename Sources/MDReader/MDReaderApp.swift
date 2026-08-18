@@ -27,14 +27,18 @@ struct MDReaderApp: App {
     @StateObject private var store = DocumentStore.shared
 
     var body: some Scene {
-        WindowGroup {
+        // `Window`, not `WindowGroup`: tabs live inside one window, and a group
+        // scene lets macOS restore several of them at once.
+        Window("MD Reader", id: "reader") {
             ContentView(store: store)
                 .frame(minWidth: 820, minHeight: 600)
                 .onAppear {
                     NSWindow.allowsAutomaticWindowTabbing = false
                 }
         }
-        .windowToolbarStyle(.unified(showsTitle: true))
+        .defaultSize(width: 1100, height: 780)
+        // The filename lives in the tab, so the toolbar shows no title of its own.
+        .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Open…") { store.openPanel() }
