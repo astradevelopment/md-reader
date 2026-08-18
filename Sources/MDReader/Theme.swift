@@ -59,7 +59,8 @@ extension Theme {
                         FontSize(.em(2.0))
                     }
                 Divider().overlay(Color.dividerSoft)
-                    .padding(.top, 2)
+                    // The title needs room to breathe before its rule.
+                    .padding(.top, 10)
             }
         }
         .heading2 { config in

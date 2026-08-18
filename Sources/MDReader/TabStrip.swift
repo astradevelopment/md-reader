@@ -11,7 +11,10 @@ struct TabStrip: View {
     let hover: TabHoverState
 
     private static let maxTabWidth: CGFloat = 240
-    private static let minTabWidth: CGFloat = 70
+    /// Below this a tab shows three letters and an ellipsis, which is no use to
+    /// anyone. Rather than shrink them all past legibility, the ones that do not
+    /// fit go to the menu — three readable tabs beat six illegible ones.
+    private static let minTabWidth: CGFloat = 110
     private static let spacing: CGFloat = 3
     private static let buttonWidth: CGFloat = 24
     private static let menuWidth: CGFloat = 30
