@@ -16,7 +16,7 @@ final class DocumentStore: ObservableObject {
     private static let openFilesKey = "session.openFiles"
     private static let selectedFileKey = "session.selectedFile"
     private static let recentFilesKey = "recent.files"
-    private let maxRecent = 10
+    private let maxRecent = 15
 
     var selected: MarkdownDocument? {
         documents.first { $0.id == selectedID }

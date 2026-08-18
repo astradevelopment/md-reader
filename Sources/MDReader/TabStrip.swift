@@ -45,9 +45,7 @@ struct TabStrip: View {
                 }
             }
 
-            CapsuleIconButton(systemName: "plus", help: "Open a file (⌘O)") {
-                store.openPanel()
-            }
+            OpenMenu(store: store)
         }
         .animation(.snappy(duration: 0.2), value: store.documents.count)
     }
@@ -73,6 +71,52 @@ struct TabStrip: View {
             documents.filter { visible.contains($0.id) },
             documents.filter { !visible.contains($0.id) }
         )
+    }
+}
+
+/// The "+" button: opening a file, or picking one you had open recently, without
+/// a trip to the File menu.
+private struct OpenMenu: View {
+    @ObservedObject var store: DocumentStore
+
+    @State private var hovering = false
+
+    /// Recents outlive the files themselves, so anything that moved is dropped.
+    private var recents: [URL] {
+        store.recentURLs.filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    var body: some View {
+        Menu {
+            Button("Open…") { store.openPanel() }
+
+            if !recents.isEmpty {
+                Divider()
+                ForEach(recents, id: \.self) { url in
+                    Button {
+                        store.open(url: url)
+                    } label: {
+                        Text(url.deletingPathExtension().lastPathComponent)
+                    }
+                }
+                Divider()
+                Button("Clear Menu") { store.clearRecent() }
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: ToolbarMetrics.contentHeight, height: ToolbarMetrics.contentHeight)
+                .contentShape(Circle())
+                .background(
+                    Circle().fill(Color.primary.opacity(hovering ? 0.1 : 0))
+                )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .frame(width: ToolbarMetrics.contentHeight)
+        .onHover { hovering = $0 }
+        .help("Open a file (⌘O)")
     }
 }
 

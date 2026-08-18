@@ -21,7 +21,7 @@ struct ContentView: View {
         NavigationSplitView {
             sidebar
                 // Capped so that even at its widest the pane still fits the toolbar.
-            .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 320)
+                .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 320)
         } detail: {
             ZStack(alignment: .topLeading) {
                 detail
@@ -48,6 +48,8 @@ struct ContentView: View {
         .onChange(of: store.selectedID) { _, _ in adoptSelection() }
         .onChange(of: store.selected?.revision) { _, _ in adoptSelection() }
         .onReceive(NotificationCenter.default.publisher(for: .mdrFind)) { _ in
+            // ⌘F with nothing open would arm a search field that is not on screen.
+            guard store.selected != nil else { return }
             search.isPresented = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .mdrFindNext)) { _ in
@@ -163,6 +165,10 @@ struct ContentView: View {
     /// Re-points the shared reader state at whichever tab is now in front.
     private func adoptSelection() {
         guard let document = store.selected else {
+            // Closing the last tab takes the search bar off the toolbar with it;
+            // without this the query would still be sitting there, mid-search,
+            // when the next file is opened.
+            search.dismiss()
             search.setCorpus([])
             progressState.value = 0
             sectionState.current = nil
