@@ -44,7 +44,17 @@ struct ContentView: View {
                 toolbarControls
             }
         }
-        .onAppear { adoptSelection() }
+        .onAppear {
+            adoptSelection()
+            // The toolbar is built after the first layout pass, so this is also
+            // applied once things have settled.
+            ToolbarPriority.apply()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { ToolbarPriority.apply() }
+        }
+        // SwiftUI rebuilds the toolbar's items whenever their set changes, and a
+        // rebuilt item comes back at the standard priority.
+        .onChange(of: store.documents.count) { _, _ in ToolbarPriority.apply() }
+        .onChange(of: store.isEmpty) { _, _ in ToolbarPriority.apply() }
         .onChange(of: store.selectedID) { _, _ in adoptSelection() }
         .onChange(of: store.selected?.revision) { _, _ in adoptSelection() }
         .onReceive(NotificationCenter.default.publisher(for: .mdrFind)) { _ in
