@@ -211,9 +211,6 @@ private struct TabPill: View {
             if showsClose {
                 HStack(spacing: 0) {
                     // Leading edge, the way macOS puts it.
-                    //
-                    // Only the active or hovered tab offers a close button, so a
-                    // crowded strip stays readable.
                     Image(systemName: "xmark")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(.secondary)
@@ -222,7 +219,10 @@ private struct TabPill: View {
                             Circle().fill(Color.primary.opacity(closeHovering ? 0.16 : 0))
                         )
                         .contentShape(Circle())
-                        .opacity(hovering || isSelected ? 1 : 0)
+                        // Safari's behaviour: the cross belongs to the tab under
+                        // the pointer, not to the one you are reading. Its space
+                        // is reserved either way, so nothing shifts as it appears.
+                        .opacity(hovering ? 1 : 0)
                         .onHover { closeHovering = $0 }
                         .onTapGesture(perform: onClose)
 
