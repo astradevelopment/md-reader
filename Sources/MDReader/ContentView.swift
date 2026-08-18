@@ -13,15 +13,25 @@ struct ContentView: View {
 
     @State private var scrollRequest: ScrollRequest?
     @State private var scrollToken = 0
+    @State private var toolbarLayout = ToolbarLayout()
+    @State private var tabHover = TabHoverState()
 
     var body: some View {
         NavigationSplitView {
             sidebar
                 .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 420)
         } detail: {
-            detail
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(nsColor: .textBackgroundColor))
+            ZStack(alignment: .topLeading) {
+                detail
+                // A sibling, not an overlay on `detail`: only this layer redraws
+                // when the pointer moves across the tabs.
+                TabTooltipLayer(hover: tabHover)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(nsColor: .textBackgroundColor))
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+                toolbarLayout.reportDetailWidth(width)
+            }
         }
         .navigationTitle(store.selected?.fileName ?? "MD Reader")
         .toolbar {
@@ -98,12 +108,12 @@ struct ContentView: View {
     private var tabsItem: some ToolbarContent {
         if #available(macOS 26.0, *) {
             ToolbarItem(placement: .navigation) {
-                TabStrip(store: store)
+                TabStrip(store: store, layout: toolbarLayout, hover: tabHover)
             }
             .sharedBackgroundVisibility(.hidden)
         } else {
             ToolbarItem(placement: .navigation) {
-                TabStrip(store: store)
+                TabStrip(store: store, layout: toolbarLayout, hover: tabHover)
             }
         }
     }
@@ -118,6 +128,7 @@ struct ContentView: View {
         if #available(macOS 26.0, *) {
             ToolbarItem(placement: .primaryAction) {
                 SearchBar(search: search, onJump: jumpToCurrentMatch)
+                    .measureCluster("search", into: toolbarLayout)
             }
             .sharedBackgroundVisibility(.hidden)
 
@@ -125,6 +136,7 @@ struct ContentView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 FontSizeControl(settings: settings)
+                    .measureCluster("fontSize", into: toolbarLayout)
             }
             .sharedBackgroundVisibility(.hidden)
 
@@ -132,13 +144,17 @@ struct ContentView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 ProgressPill(state: progressState)
+                    .measureCluster("progress", into: toolbarLayout)
             }
             .sharedBackgroundVisibility(.hidden)
         } else {
             ToolbarItemGroup(placement: .primaryAction) {
                 SearchBar(search: search, onJump: jumpToCurrentMatch)
+                    .measureCluster("search", into: toolbarLayout)
                 FontSizeControl(settings: settings)
+                    .measureCluster("fontSize", into: toolbarLayout)
                 ProgressPill(state: progressState)
+                    .measureCluster("progress", into: toolbarLayout)
             }
         }
     }

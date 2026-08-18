@@ -1,0 +1,64 @@
+import SwiftUI
+
+/// How much room the tab strip has left after the right-hand clusters.
+///
+/// A toolbar item is sized to its content rather than being offered a width, so
+/// the strip cannot measure its own space. Instead the detail pane reports the
+/// window's usable width and each cluster reports what it occupies.
+@MainActor
+final class ToolbarLayout: ObservableObject {
+    /// Toolbar side margins plus the spacers between clusters.
+    private static let chrome: CGFloat = 72
+
+    @Published private(set) var availableForTabs: CGFloat = 600
+
+    private var detailWidth: CGFloat = 1000
+    private var clusters: [String: CGFloat] = [:]
+
+    func reportDetailWidth(_ width: CGFloat) {
+        guard abs(detailWidth - width) > 0.5 else { return }
+        detailWidth = width
+        recompute()
+    }
+
+    func reportCluster(_ key: String, width: CGFloat) {
+        guard abs((clusters[key] ?? -1) - width) > 0.5 else { return }
+        clusters[key] = width
+        recompute()
+    }
+
+    private func recompute() {
+        let controls = clusters.values.reduce(0, +)
+        let value = max(120, detailWidth - controls - Self.chrome)
+        guard abs(value - availableForTabs) > 1 else { return }
+        availableForTabs = value
+    }
+}
+
+extension View {
+    func measureCluster(_ key: String, into layout: ToolbarLayout) -> some View {
+        onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+            layout.reportCluster(key, width: width)
+        }
+    }
+}
+
+/// The tab the pointer is over, with its position in window coordinates.
+@MainActor
+final class TabHoverState: ObservableObject {
+    struct Info: Equatable {
+        let id: UUID
+        let name: String
+        let anchor: CGRect
+    }
+
+    @Published var info: Info?
+
+    func enter(id: UUID, name: String, anchor: CGRect) {
+        info = Info(id: id, name: name, anchor: anchor)
+    }
+
+    func leave(id: UUID) {
+        if info?.id == id { info = nil }
+    }
+}

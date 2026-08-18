@@ -7,18 +7,35 @@ import SwiftUI
 /// a third under the selected one.
 struct TabStrip: View {
     @ObservedObject var store: DocumentStore
+    @ObservedObject var layout: ToolbarLayout
+    let hover: TabHoverState
+
+    private static let tabWidth: CGFloat = 150
+    private static let spacing: CGFloat = 3
+    private static let buttonWidth: CGFloat = 24
 
     var body: some View {
-        HStack(spacing: 3) {
-            ForEach(store.documents) { document in
+        let split = split()
+
+        return HStack(spacing: Self.spacing) {
+            ForEach(split.visible) { document in
                 TabPill(
+                    id: document.id,
                     title: document.displayName,
                     fullName: document.fileName,
                     isSelected: document.id == store.selectedID,
                     showsClose: store.documents.count > 1,
+                    fixedWidth: store.documents.count > 1 ? Self.tabWidth : nil,
+                    hover: hover,
                     onSelect: { store.select(document.id) },
                     onClose: { store.close(document.id) }
                 )
+            }
+
+            if !split.overflow.isEmpty {
+                OverflowMenu(documents: split.overflow, selectedID: store.selectedID) { id in
+                    store.select(id)
+                }
             }
 
             CapsuleIconButton(systemName: "plus", help: "Open a file (⌘O)") {
@@ -27,18 +44,87 @@ struct TabStrip: View {
         }
         .animation(.snappy(duration: 0.2), value: store.documents.count)
     }
+
+    private var capacity: Int {
+        TabSplit.capacity(
+            available: layout.availableForTabs,
+            tabWidth: Self.tabWidth,
+            spacing: Self.spacing,
+            buttonWidth: Self.buttonWidth
+        )
+    }
+
+    private func split() -> (visible: [MarkdownDocument], overflow: [MarkdownDocument]) {
+        let documents = store.documents
+        let ids = TabSplit.split(
+            ids: documents.map(\.id),
+            selected: store.selectedID,
+            capacity: capacity
+        )
+        let visible = Set(ids.visible)
+        return (
+            documents.filter { visible.contains($0.id) },
+            documents.filter { !visible.contains($0.id) }
+        )
+    }
+}
+
+private struct OverflowMenu: View {
+    let documents: [MarkdownDocument]
+    let selectedID: UUID?
+    let onSelect: (UUID) -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Menu {
+            ForEach(documents) { document in
+                Button {
+                    onSelect(document.id)
+                } label: {
+                    if document.id == selectedID {
+                        Label(document.fileName, systemImage: "checkmark")
+                    } else {
+                        Text(document.fileName)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 1) {
+                Text("\(documents.count)")
+                    .font(.system(size: 10, design: .rounded).monospacedDigit())
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+            }
+            .foregroundStyle(.secondary)
+            .frame(width: 30, height: ToolbarMetrics.contentHeight)
+            .contentShape(Capsule())
+            .background(
+                Capsule().fill(Color.primary.opacity(hovering ? 0.1 : 0))
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .frame(width: 30)
+        .onHover { hovering = $0 }
+        .help("\(documents.count) more open")
+    }
 }
 
 private struct TabPill: View {
+    let id: UUID
     let title: String
     let fullName: String
     let isSelected: Bool
     let showsClose: Bool
+    let fixedWidth: CGFloat?
+    let hover: TabHoverState
     let onSelect: () -> Void
     let onClose: () -> Void
 
     @State private var hovering = false
     @State private var closeHovering = false
+    @State private var frame: CGRect = .zero
 
     var body: some View {
         HStack(spacing: 4) {
@@ -67,18 +153,65 @@ private struct TabPill: View {
         .padding(.leading, 10)
         .padding(.trailing, showsClose ? 4 : 10)
         .frame(height: ToolbarMetrics.contentHeight)
-        .frame(minWidth: 60, maxWidth: 165)
+        .frame(width: fixedWidth)
+        .frame(minWidth: fixedWidth == nil ? 60 : nil, maxWidth: fixedWidth == nil ? 220 : nil)
         .background(
             Capsule().fill(Color.primary.opacity(fillOpacity))
         )
         .contentShape(Capsule())
-        .onHover { hovering = $0 }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+        .onHover { isInside in
+            hovering = isInside
+            if isInside {
+                hover.enter(id: id, name: fullName, anchor: frame)
+            } else {
+                hover.leave(id: id)
+            }
+        }
         .onTapGesture(perform: onSelect)
-        .help(fullName)
     }
 
     private var fillOpacity: Double {
         if isSelected { return 0.11 }
         return hovering ? 0.05 : 0
+    }
+}
+
+/// The full filename, shown the instant the pointer lands on a tab.
+///
+/// A sibling of the document rather than an overlay on it, so hovering a tab
+/// never invalidates the reader. Positioned from the window coordinates the tab
+/// reports — toolbar items and content share that space.
+struct TabTooltipLayer: View {
+    @ObservedObject var hover: TabHoverState
+
+    var body: some View {
+        GeometryReader { geo in
+            if let info = hover.info {
+                Text(info.name)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(.regularMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.16), radius: 6, y: 2)
+                    .fixedSize()
+                    .position(
+                        x: anchorX(info: info, in: geo),
+                        y: 20
+                    )
+                    .transition(.opacity)
+            }
+        }
+        .allowsHitTesting(false)
+        .animation(.easeOut(duration: 0.12), value: hover.info)
+    }
+
+    /// Centred under the tab, nudged inwards so it never runs off either edge.
+    private func anchorX(info: TabHoverState.Info, in geo: GeometryProxy) -> CGFloat {
+        let local = info.anchor.midX - geo.frame(in: .global).minX
+        return min(max(local, 110), max(110, geo.size.width - 110))
     }
 }
