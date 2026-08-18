@@ -16,13 +16,16 @@ final class MarkdownDocument: ObservableObject, Identifiable {
     /// Parsed once per document. Rebuilding this on every render used to re-run
     /// the CommonMark parser over the whole file for each scrolled frame.
     @Published private(set) var sections: [Section] = []
+    @Published private(set) var blocks: [Block] = []
+    /// Which section a block belongs to, for keeping the outline in step.
+    private(set) var sectionOfBlock: [String: String] = [:]
     /// Bumped whenever `sections` is replaced, so views can tell documents apart
     /// with a cheap comparison instead of walking the array.
     @Published private(set) var revision: Int = 0
 
     /// Where the reader was left when this tab was last on screen. Plain stored
     /// properties on purpose — they change on every scroll and must not publish.
-    var lastSectionID: String?
+    var lastBlockID: String?
     var lastProgress: Double = 0
 
     struct Heading: Identifiable, Hashable {
@@ -35,12 +38,24 @@ final class MarkdownDocument: ObservableObject, Identifiable {
     struct Section: Identifiable, Equatable {
         let id: String
         let heading: Heading?
-        /// Raw Markdown, kept for search.
         let content: String
-        /// Pre-parsed block tree handed straight to MarkdownUI.
-        let markdown: MarkdownContent
 
         static func == (lhs: Section, rhs: Section) -> Bool { lhs.id == rhs.id }
+    }
+
+    /// One paragraph, list, table or code block — the unit the reader renders and
+    /// the unit a search hit points at, so a match lights up a paragraph rather
+    /// than the whole stretch between two headings.
+    struct Block: Identifiable, Equatable {
+        let id: String
+        let sectionID: String
+        let sectionTitle: String
+        let content: String
+        let markdown: MarkdownContent
+        /// Set only on the first block of a section, for the spacing above it.
+        let headingLevel: Int?
+
+        static func == (lhs: Block, rhs: Block) -> Bool { lhs.id == rhs.id }
     }
 
     /// Fills the document from text that has already been read — used by session
@@ -52,6 +67,7 @@ final class MarkdownDocument: ObservableObject, Identifiable {
         self.displayName = url.deletingPathExtension().lastPathComponent
         self.headings = Self.extractHeadings(text)
         self.sections = Self.splitIntoSections(content: text, headings: self.headings)
+        self.adoptBlocks()
         self.revision += 1
     }
 
@@ -65,8 +81,9 @@ final class MarkdownDocument: ObservableObject, Identifiable {
             self.displayName = url.deletingPathExtension().lastPathComponent
             self.headings = Self.extractHeadings(text)
             self.sections = Self.splitIntoSections(content: text, headings: self.headings)
+            self.adoptBlocks()
             self.revision += 1
-            self.lastSectionID = nil
+            self.lastBlockID = nil
             self.lastProgress = 0
             return true
         } catch {
@@ -77,6 +94,33 @@ final class MarkdownDocument: ObservableObject, Identifiable {
             alert.runModal()
             return false
         }
+    }
+
+    private func adoptBlocks() {
+        blocks = Self.makeBlocks(sections: sections)
+        sectionOfBlock = Dictionary(
+            uniqueKeysWithValues: blocks.map { ($0.id, $0.sectionID) }
+        )
+    }
+
+    static func makeBlocks(sections: [Section]) -> [Block] {
+        var result: [Block] = []
+        for section in sections {
+            let title = section.heading?.text ?? String(localized: "Beginning")
+            for (index, text) in MarkdownBlocks.split(section.content).enumerated() {
+                result.append(
+                    Block(
+                        id: "\(section.id)#\(index)",
+                        sectionID: section.id,
+                        sectionTitle: title,
+                        content: text,
+                        markdown: MarkdownContent(text),
+                        headingLevel: index == 0 ? (section.heading?.level ?? 0) : nil
+                    )
+                )
+            }
+        }
+        return result
     }
 
     static func extractHeadings(_ text: String) -> [Heading] {
@@ -169,21 +213,19 @@ final class MarkdownDocument: ObservableObject, Identifiable {
         guard !content.isEmpty else { return [] }
         let lines = content.components(separatedBy: "\n")
         guard !headings.isEmpty else {
-            return [Section(id: "all", heading: nil, content: content, markdown: MarkdownContent(content))]
+            return [Section(id: "all", heading: nil, content: content)]
         }
         var sections: [Section] = []
         if headings[0].lineIndex > 0 {
             let pre = lines[0..<headings[0].lineIndex].joined(separator: "\n")
             if !pre.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                sections.append(
-                    Section(id: "__preamble__", heading: nil, content: pre, markdown: MarkdownContent(pre))
-                )
+                sections.append(Section(id: "__preamble__", heading: nil, content: pre))
             }
         }
         for (i, h) in headings.enumerated() {
             let end = (i + 1 < headings.count) ? headings[i + 1].lineIndex : lines.count
             let body = lines[h.lineIndex..<end].joined(separator: "\n")
-            sections.append(Section(id: h.id, heading: h, content: body, markdown: MarkdownContent(body)))
+            sections.append(Section(id: h.id, heading: h, content: body))
         }
         return sections
     }

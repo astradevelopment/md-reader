@@ -84,7 +84,11 @@ struct ContentView: View {
                 sectionState: sectionState,
                 progressState: progressState,
                 search: search,
-                onSelectHeading: { id in jump(to: id, flash: false) },
+                onSelectHeading: { id in
+                    // The outline addresses sections; the reader addresses blocks.
+                    sectionState.current = id
+                    jump(to: "\(id)#0", flash: false)
+                },
                 onSelectMatch: { index in
                     search.select(index)
                     jumpToCurrentMatch()
@@ -184,20 +188,25 @@ struct ContentView: View {
             sectionState.current = nil
             return
         }
-        search.setCorpus(document.sections)
+        search.setCorpus(document.blocks)
         progressState.value = document.lastProgress
-        sectionState.current = document.lastSectionID ?? document.headings.first?.id
+        sectionState.current = document.lastBlockID.flatMap { document.sectionOfBlock[$0] }
+            ?? document.headings.first?.id
     }
 
     private func jumpToCurrentMatch() {
         guard let match = search.current else { return }
-        jump(to: match.sectionID, flash: true)
+        jump(to: match.blockID, flash: true)
     }
 
-    private func jump(to sectionID: String, flash: Bool) {
+    /// `target` is a block for a search hit, and a section's first block for a
+    /// heading picked in the outline.
+    private func jump(to target: String, flash: Bool) {
         scrollToken += 1
-        sectionState.current = sectionID
-        scrollRequest = ScrollRequest(sectionID: sectionID, token: scrollToken, flash: flash)
+        if let section = store.selected?.sectionOfBlock[target] {
+            sectionState.current = section
+        }
+        scrollRequest = ScrollRequest(targetID: target, token: scrollToken, flash: flash)
     }
 }
 

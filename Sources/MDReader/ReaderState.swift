@@ -18,7 +18,8 @@ final class SectionState: ObservableObject {
 /// A request to scroll the reader to a section. Carries a token so that jumping
 /// twice to the same section (e.g. two search hits in one section) still fires.
 struct ScrollRequest: Equatable {
-    let sectionID: String
+    /// A block identifier: a search hit, or a section's opening block.
+    let targetID: String
     let token: Int
     var flash: Bool = false
 }

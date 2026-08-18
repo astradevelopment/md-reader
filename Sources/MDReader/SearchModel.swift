@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SearchMatch: Identifiable, Equatable {
     let id: Int
-    let sectionID: String
+    let blockID: String
     let sectionTitle: String
     /// Text before the hit on the same line, already trimmed for display.
     let prefix: String
@@ -47,11 +47,11 @@ final class SearchModel: ObservableObject {
         query.trimmingCharacters(in: .whitespaces).count >= Self.minQueryLength
     }
 
-    func setCorpus(_ sections: [MarkdownDocument.Section]) {
-        corpus = sections.map {
+    func setCorpus(_ blocks: [MarkdownDocument.Block]) {
+        corpus = blocks.map {
             Entry(
                 id: $0.id,
-                title: $0.heading?.text ?? String(localized: "Beginning"),
+                title: $0.sectionTitle,
                 lines: $0.content.components(separatedBy: "\n")
             )
         }
@@ -109,7 +109,7 @@ final class SearchModel: ObservableObject {
                     found.append(
                         SearchMatch(
                             id: found.count,
-                            sectionID: entry.id,
+                            blockID: entry.id,
                             sectionTitle: entry.title,
                             prefix: Self.leadIn(of: line, upTo: range.lowerBound),
                             match: String(line[range]),

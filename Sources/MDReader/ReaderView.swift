@@ -30,8 +30,9 @@ struct ReaderView: View {
     /// Dropping a file opens a tab rather than replacing this document.
     var onOpenFile: (URL) -> Void
 
-    /// Bound to ScrollView's actively-visible target via .scrollPosition.
-    @State private var visibleSectionID: String?
+    /// Bound to ScrollView's actively-visible target via .scrollPosition. A block
+    /// now, not a section — that is what makes a hit land on one paragraph.
+    @State private var visibleBlockID: String?
     @State private var flash = FlashState()
     @State private var flashToken = 0
     /// Raised while a jump is in flight, so the sidebar highlight does not race
@@ -41,15 +42,15 @@ struct ReaderView: View {
 
     var body: some View {
         ScrollView {
-            SectionsStack(
-                sections: document.sections,
+            BlocksStack(
+                blocks: document.blocks,
                 revision: document.revision,
                 fontSize: settings.fontSize,
                 flash: flash
             )
             .equatable()
         }
-        .scrollPosition(id: $visibleSectionID, anchor: .top)
+        .scrollPosition(id: $visibleBlockID, anchor: .top)
         .onScrollGeometryChange(for: ScrollMetrics.self) { geo in
             ScrollMetrics(
                 offsetY: geo.contentOffset.y,
@@ -63,12 +64,14 @@ struct ReaderView: View {
             if abs(p - progressState.value) > 0.002 { progressState.value = p }
             document.lastProgress = p
         }
-        .onChange(of: visibleSectionID) { _, newID in
+        .onChange(of: visibleBlockID) { _, newID in
             guard let newID else { return }
-            document.lastSectionID = newID
+            document.lastBlockID = newID
             guard !isJumping else { return }
-            if newID != "__preamble__", newID != sectionState.current {
-                sectionState.current = newID
+            // The outline still tracks headings, so a block reports its section.
+            guard let section = document.sectionOfBlock[newID] else { return }
+            if section != "__preamble__", section != sectionState.current {
+                sectionState.current = section
             }
         }
         .onChange(of: scrollRequest) { _, request in
@@ -78,17 +81,17 @@ struct ReaderView: View {
             isJumping = true
             jumpToken += 1
             let token = jumpToken
-            visibleSectionID = request.sectionID
-            if request.flash { startFlash(request.sectionID) }
+            visibleBlockID = request.targetID
+            if request.flash { startFlash(request.targetID) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 if jumpToken == token { isJumping = false }
             }
         }
         .onAppear {
             // Restore where this tab was left; a fresh document starts at the top.
-            let target = document.lastSectionID ?? document.sections.first?.id
-            if let target, target != visibleSectionID {
-                DispatchQueue.main.async { visibleSectionID = target }
+            let target = document.lastBlockID ?? document.blocks.first?.id
+            if let target, target != visibleBlockID {
+                DispatchQueue.main.async { visibleBlockID = target }
             }
             if sectionState.current == nil, let first = document.headings.first?.id {
                 sectionState.current = first
@@ -120,8 +123,8 @@ struct ReaderView: View {
 /// particular) costs tens of milliseconds, and without it every scroll-driven state
 /// change — the visible-section tracker, a search flash — would redo that work. Only
 /// a new document or a new text size can invalidate it.
-private struct SectionsStack: View, Equatable {
-    let sections: [MarkdownDocument.Section]
+private struct BlocksStack: View, Equatable {
+    let blocks: [MarkdownDocument.Block]
     let revision: Int
     let fontSize: Double
     let flash: FlashState
@@ -131,7 +134,7 @@ private struct SectionsStack: View, Equatable {
     private let horizontalPadding: CGFloat = 72
     private let maxContentWidth: CGFloat = 780
 
-    nonisolated static func == (lhs: SectionsStack, rhs: SectionsStack) -> Bool {
+    nonisolated static func == (lhs: BlocksStack, rhs: BlocksStack) -> Bool {
         lhs.revision == rhs.revision
             && lhs.fontSize == rhs.fontSize
             && lhs.flash === rhs.flash
@@ -139,20 +142,16 @@ private struct SectionsStack: View, Equatable {
 
     var body: some View {
         let theme = ThemeCache.reader(fontSize: fontSize)
-        let firstID = sections.first?.id
+        let firstID = blocks.first?.id
 
-        // Lazy, not eager: laying out a 76 KB spec up front cost ~800 ms before the
-        // first frame. The cost is that ScrollView's reported content height is an
-        // estimate until the whole document has been realised, so the progress
-        // readout runs slightly ahead on a first pass through a long file.
         return LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(sections) { section in
-                Markdown(section.markdown)
+            ForEach(blocks) { block in
+                Markdown(block.markdown)
                     .markdownTheme(theme)
                     .textSelection(.enabled)
-                    .background(FlashBackdrop(sectionID: section.id, state: flash))
-                    .id(section.id)
-                    .padding(.top, section.id == firstID ? 0 : sectionTopSpacing(for: section))
+                    .background(FlashBackdrop(blockID: block.id, state: flash))
+                    .id(block.id)
+                    .padding(.top, block.id == firstID ? 0 : spacing(above: block))
             }
         }
         .scrollTargetLayout()
@@ -163,9 +162,12 @@ private struct SectionsStack: View, Equatable {
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
-    private func sectionTopSpacing(for section: MarkdownDocument.Section) -> CGFloat {
-        guard let heading = section.heading else { return 12 }
-        switch heading.level {
+    /// Only a section's opening block needs room above it — MarkdownUI keeps each
+    /// block's own margins, so measured against the previous rendering the whole
+    /// document comes out within fifteen points of where it was.
+    private func spacing(above block: MarkdownDocument.Block) -> CGFloat {
+        guard let level = block.headingLevel else { return 0 }
+        switch level {
         case 1: return 48
         case 2: return 40
         case 3: return 28
@@ -176,10 +178,10 @@ private struct SectionsStack: View, Equatable {
     }
 }
 
-/// One rounded wash per section. Observing `FlashState` here — rather than in
+/// One rounded wash per block. Observing `FlashState` here — rather than in
 /// `SectionsStack` — keeps a search jump from re-rendering the Markdown itself.
 private struct FlashBackdrop: View {
-    let sectionID: String
+    let blockID: String
     @ObservedObject var state: FlashState
 
     /// Struck on arrival and then left to fade, so every press of the arrows
@@ -192,7 +194,7 @@ private struct FlashBackdrop: View {
             .padding(.horizontal, -14)
             .padding(.vertical, -8)
             .onChange(of: state.pulse) { _, pulse in
-                guard pulse?.id == sectionID else {
+                guard pulse?.id == blockID else {
                     if intensity != 0 {
                         withAnimation(.easeOut(duration: 0.2)) { intensity = 0 }
                     }
