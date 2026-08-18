@@ -50,14 +50,6 @@ final class ReaderSettings: ObservableObject {
     func decrease() { percent = max(Self.minPercent, (percent / Self.step).rounded(.up) * Self.step - Self.step) }
     func reset() { percent = Self.defaultPercent }
 
-    /// Accepts what someone typed into the percent field: "120", "120%", "120 %".
-    func apply(typed text: String) {
-        let digits = text.filter { $0.isNumber || $0 == "." || $0 == "," }
-            .replacingOccurrences(of: ",", with: ".")
-        guard let value = Double(digits) else { return }
-        percent = Self.clamp(value.rounded())
-    }
-
     private static func clamp(_ value: Double) -> Double {
         min(max(value, minPercent), maxPercent)
     }

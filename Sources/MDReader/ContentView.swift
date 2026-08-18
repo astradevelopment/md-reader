@@ -26,10 +26,7 @@ struct ContentView: View {
         .navigationTitle(store.selected?.fileName ?? "MD Reader")
         .toolbar {
             if !store.isEmpty {
-                // Centre of the toolbar row: the tabs stand in for the window title.
-                ToolbarItem(placement: .principal) {
-                    TabStrip(store: store)
-                }
+                tabsItem
             }
             if store.selected != nil {
                 toolbarControls
@@ -93,6 +90,23 @@ struct ContentView: View {
     }
 
     // MARK: - Toolbar
+
+    /// Leading edge of the content area, where the document's own text starts.
+    /// The shared background is switched off so the tabs sit directly on the
+    /// toolbar instead of on a capsule of their own.
+    @ToolbarContentBuilder
+    private var tabsItem: some ToolbarContent {
+        if #available(macOS 26.0, *) {
+            ToolbarItem(placement: .navigation) {
+                TabStrip(store: store)
+            }
+            .sharedBackgroundVisibility(.hidden)
+        } else {
+            ToolbarItem(placement: .navigation) {
+                TabStrip(store: store)
+            }
+        }
+    }
 
     /// Three separate capsules — search, text size, reading progress.
     ///

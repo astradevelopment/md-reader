@@ -1,14 +1,19 @@
 import SwiftUI
 
 /// Browser-style tabs, living in the toolbar row itself — the tab *is* the title.
+///
+/// Deliberately without a capsule of its own: the toolbar already provides one
+/// surface, so a container here would stack a second backdrop under the tabs and
+/// a third under the selected one.
 struct TabStrip: View {
     @ObservedObject var store: DocumentStore
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             ForEach(store.documents) { document in
                 TabPill(
-                    title: document.fileName,
+                    title: document.displayName,
+                    fullName: document.fileName,
                     isSelected: document.id == store.selectedID,
                     showsClose: store.documents.count > 1,
                     onSelect: { store.select(document.id) },
@@ -20,13 +25,13 @@ struct TabStrip: View {
                 store.openPanel()
             }
         }
-        .toolbarCluster()
         .animation(.snappy(duration: 0.2), value: store.documents.count)
     }
 }
 
 private struct TabPill: View {
     let title: String
+    let fullName: String
     let isSelected: Bool
     let showsClose: Bool
     let onSelect: () -> Void
@@ -41,7 +46,7 @@ private struct TabPill: View {
                 .font(.system(size: 11, weight: isSelected ? .medium : .regular))
                 .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                 .lineLimit(1)
-                .truncationMode(.middle)
+                .truncationMode(.tail)
 
             if showsClose {
                 // Only the active or hovered tab offers a close button, so a
@@ -62,18 +67,18 @@ private struct TabPill: View {
         .padding(.leading, 10)
         .padding(.trailing, showsClose ? 4 : 10)
         .frame(height: ToolbarMetrics.contentHeight)
-        .frame(minWidth: 64, maxWidth: 170)
+        .frame(minWidth: 60, maxWidth: 165)
         .background(
             Capsule().fill(Color.primary.opacity(fillOpacity))
         )
         .contentShape(Capsule())
         .onHover { hovering = $0 }
         .onTapGesture(perform: onSelect)
-        .help(title)
+        .help(fullName)
     }
 
     private var fillOpacity: Double {
-        if isSelected { return 0.12 }
-        return hovering ? 0.06 : 0
+        if isSelected { return 0.11 }
+        return hovering ? 0.05 : 0
     }
 }

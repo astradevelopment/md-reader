@@ -11,6 +11,8 @@ final class MarkdownDocument: ObservableObject, Identifiable {
     @Published var content: String = ""
     @Published var headings: [Heading] = []
     @Published var fileName: String = "MD Reader"
+    /// Filename without the extension — browsers label tabs with titles, not files.
+    @Published var displayName: String = "MD Reader"
     /// Parsed once per document. Rebuilding this on every render used to re-run
     /// the CommonMark parser over the whole file for each scrolled frame.
     @Published private(set) var sections: [Section] = []
@@ -47,6 +49,7 @@ final class MarkdownDocument: ObservableObject, Identifiable {
         self.url = url
         self.content = text
         self.fileName = url.lastPathComponent
+        self.displayName = url.deletingPathExtension().lastPathComponent
         self.headings = Self.extractHeadings(text)
         self.sections = Self.splitIntoSections(content: text, headings: self.headings)
         self.revision += 1
@@ -59,6 +62,7 @@ final class MarkdownDocument: ObservableObject, Identifiable {
             self.url = url
             self.content = text
             self.fileName = url.lastPathComponent
+            self.displayName = url.deletingPathExtension().lastPathComponent
             self.headings = Self.extractHeadings(text)
             self.sections = Self.splitIntoSections(content: text, headings: self.headings)
             self.revision += 1

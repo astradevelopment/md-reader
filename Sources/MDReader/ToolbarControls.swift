@@ -66,9 +66,7 @@ struct CapsuleIconButton: View {
 struct FontSizeControl: View {
     @ObservedObject var settings: ReaderSettings
 
-    @State private var editing = false
-    @State private var draft = ""
-    @State private var percentHovering = false
+    @State private var hovering = false
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -93,45 +91,37 @@ struct FontSizeControl: View {
         }
     }
 
-    @ViewBuilder
+    /// Always a live field with a fixed "%" beside it — never a label that swaps
+    /// into an editor. A toolbar text field does not reliably report losing focus,
+    /// so a mode switch would strand the control in its editing state.
     private var percentField: some View {
-        if editing {
-            TextField("", text: $draft)
-                .textFieldStyle(.plain)
-                .multilineTextAlignment(.center)
-                .font(.system(size: 11, design: .rounded).monospacedDigit())
-                .frame(width: 42)
-                .focused($focused)
-                .onSubmit(commit)
-                .onExitCommand { editing = false }
-                .onChange(of: focused) { _, isFocused in
-                    // Clicking away is a commit, the same as pressing return.
-                    if !isFocused, editing { commit() }
-                }
-        } else {
-            Text("\(Int(settings.percent))%")
-                .font(.system(size: 11, design: .rounded).monospacedDigit())
+        HStack(spacing: 0) {
+            TextField(
+                "",
+                value: $settings.percent,
+                format: .number.precision(.fractionLength(0))
+            )
+            .textFieldStyle(.plain)
+            .multilineTextAlignment(.trailing)
+            .font(.system(size: 11, design: .rounded).monospacedDigit())
+            .foregroundStyle(.primary)
+            .frame(width: 26)
+            .focused($focused)
+            .onSubmit { focused = false }
+
+            Text("%")
+                .font(.system(size: 11, design: .rounded))
                 .foregroundStyle(.secondary)
-                .frame(width: 42, height: ToolbarMetrics.contentHeight)
-                .background(
-                    Capsule().fill(Color.primary.opacity(percentHovering ? 0.1 : 0))
-                )
-                .contentShape(Capsule())
-                .onHover { percentHovering = $0 }
-                .onTapGesture(perform: beginEditing)
-                .help("Click to type a size")
         }
-    }
-
-    private func beginEditing() {
-        draft = String(Int(settings.percent))
-        editing = true
-        DispatchQueue.main.async { focused = true }
-    }
-
-    private func commit() {
-        settings.apply(typed: draft)
-        editing = false
+        .padding(.horizontal, 5)
+        .frame(height: ToolbarMetrics.contentHeight)
+        .background(
+            Capsule().fill(Color.primary.opacity(hovering || focused ? 0.1 : 0))
+        )
+        .contentShape(Capsule())
+        .onHover { hovering = $0 }
+        .onTapGesture { focused = true }
+        .help("Type a size, or use ⌘+ / ⌘−")
     }
 }
 
