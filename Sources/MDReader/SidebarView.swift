@@ -25,8 +25,6 @@ struct SidebarView: View {
                 contents
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(SidebarBackdrop())
     }
 
     // MARK: - Header
@@ -231,17 +229,6 @@ private struct HeadingRow: View {
     }
 }
 
-
-/// The same Liquid Glass the toolbar controls sit on, behind the outline.
-private struct SidebarBackdrop: View {
-    var body: some View {
-        if #available(macOS 26.0, *) {
-            Color.clear.glassEffect(.regular, in: Rectangle())
-        } else {
-            Rectangle().fill(.ultraThinMaterial)
-        }
-    }
-}
 
 /// Reading progress, alongside the outline's heading.
 ///
