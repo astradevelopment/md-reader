@@ -13,8 +13,9 @@ struct ContentView: View {
 
     @State private var scrollRequest: ScrollRequest?
     @State private var scrollToken = 0
-    /// Unobserved here: only the tab strip cares how much room is left.
-    @State private var toolbarLayout = ToolbarLayout()
+    /// Observed: whether there is room for the tabs at all decides whether their
+    /// toolbar item exists.
+    @StateObject private var toolbarLayout = ToolbarLayout()
     @State private var tabHover = TabHoverState()
 
     var body: some View {
@@ -37,7 +38,11 @@ struct ContentView: View {
         }
         .navigationTitle("")
         .toolbar {
-            if !store.isEmpty {
+            // Below this there is not even room for the strip's own chevron, and
+            // an item that does not fit is an item the toolbar sweeps into its
+            // overflow — a system chevron holding our tab pills. Better that the
+            // tabs simply stand aside; ⇧⌘] and ⇧⌘[ still move between them.
+            if !store.isEmpty, toolbarLayout.availableForTabs >= 90 {
                 tabsItem
             }
             if store.selected != nil {

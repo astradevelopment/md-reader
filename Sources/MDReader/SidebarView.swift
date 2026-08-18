@@ -50,7 +50,9 @@ struct SidebarView: View {
                 ProgressReadout(state: progressState)
             }
 
-            if hasDocument {
+            // While results are showing, the heading is a count and the bar is
+            // about something else entirely — it only gets in the way.
+            if hasDocument, !showingResults {
                 ReadingProgressBar(state: progressState)
             }
         }
