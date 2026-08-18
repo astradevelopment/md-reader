@@ -1,6 +1,14 @@
 import SwiftUI
 
-// MARK: - Glass
+// MARK: - Shared shape language
+
+/// One set of numbers for every toolbar cluster, so tabs, search, text size and
+/// progress read as the same control.
+enum ToolbarMetrics {
+    static let contentHeight: CGFloat = 24
+    static let paddingH: CGFloat = 4
+    static let paddingV: CGFloat = 3
+}
 
 extension View {
     /// Liquid Glass on macOS 26, a material capsule everywhere else.
@@ -15,10 +23,19 @@ extension View {
                 )
         }
     }
+
+    /// Wraps a cluster of controls in the standard glass capsule.
+    func toolbarCluster(interactive: Bool = true) -> some View {
+        self
+            .frame(height: ToolbarMetrics.contentHeight)
+            .padding(.horizontal, ToolbarMetrics.paddingH)
+            .padding(.vertical, ToolbarMetrics.paddingV)
+            .glassCapsule(interactive: interactive)
+    }
 }
 
-/// A borderless icon button sized for the toolbar capsules.
-private struct CapsuleIconButton: View {
+/// A borderless icon button with a round hover halo.
+struct CapsuleIconButton: View {
     let systemName: String
     var help: String = ""
     var enabled: Bool = true
@@ -29,12 +46,11 @@ private struct CapsuleIconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 12, weight: .medium))
-                .frame(width: 24, height: 24)
+                .font(.system(size: 11, weight: .medium))
+                .frame(width: ToolbarMetrics.contentHeight, height: ToolbarMetrics.contentHeight)
                 .contentShape(Circle())
                 .background(
-                    Circle()
-                        .fill(Color.primary.opacity(hovering && enabled ? 0.1 : 0))
+                    Circle().fill(Color.primary.opacity(hovering && enabled ? 0.1 : 0))
                 )
         }
         .buttonStyle(.plain)
@@ -50,17 +66,20 @@ private struct CapsuleIconButton: View {
 struct FontSizeControl: View {
     @ObservedObject var settings: ReaderSettings
 
+    @State private var editing = false
+    @State private var draft = ""
+    @State private var percentHovering = false
+    @FocusState private var focused: Bool
+
     var body: some View {
-        HStack(spacing: 1) {
+        HStack(spacing: 0) {
             CapsuleIconButton(
                 systemName: "textformat.size.smaller",
                 help: "Smaller text (⌘−)",
                 enabled: settings.canDecrease
             ) { settings.decrease() }
 
-            Divider()
-                .frame(height: 12)
-                .opacity(0.4)
+            percentField
 
             CapsuleIconButton(
                 systemName: "textformat.size.larger",
@@ -68,12 +87,51 @@ struct FontSizeControl: View {
                 enabled: settings.canIncrease
             ) { settings.increase() }
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 3)
-        .glassCapsule(interactive: true)
+        .toolbarCluster()
         .contextMenu {
-            Button("Actual Size (\(Int(ReaderSettings.defaultSize)) pt)") { settings.reset() }
+            Button("Actual Size (100%)") { settings.reset() }
         }
+    }
+
+    @ViewBuilder
+    private var percentField: some View {
+        if editing {
+            TextField("", text: $draft)
+                .textFieldStyle(.plain)
+                .multilineTextAlignment(.center)
+                .font(.system(size: 11, design: .rounded).monospacedDigit())
+                .frame(width: 42)
+                .focused($focused)
+                .onSubmit(commit)
+                .onExitCommand { editing = false }
+                .onChange(of: focused) { _, isFocused in
+                    // Clicking away is a commit, the same as pressing return.
+                    if !isFocused, editing { commit() }
+                }
+        } else {
+            Text("\(Int(settings.percent))%")
+                .font(.system(size: 11, design: .rounded).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 42, height: ToolbarMetrics.contentHeight)
+                .background(
+                    Capsule().fill(Color.primary.opacity(percentHovering ? 0.1 : 0))
+                )
+                .contentShape(Capsule())
+                .onHover { percentHovering = $0 }
+                .onTapGesture(perform: beginEditing)
+                .help("Click to type a size")
+        }
+    }
+
+    private func beginEditing() {
+        draft = String(Int(settings.percent))
+        editing = true
+        DispatchQueue.main.async { focused = true }
+    }
+
+    private func commit() {
+        settings.apply(typed: draft)
+        editing = false
     }
 }
 
@@ -88,11 +146,11 @@ struct SearchBar: View {
     @State private var magnifierHovering = false
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(search.isPresented ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
-                .frame(width: 24, height: 24)
+                .frame(width: ToolbarMetrics.contentHeight, height: ToolbarMetrics.contentHeight)
                 .contentShape(Circle())
                 .background(
                     Circle().fill(Color.primary.opacity(magnifierHovering && !search.isPresented ? 0.1 : 0))
@@ -130,9 +188,7 @@ struct SearchBar: View {
                 CapsuleIconButton(systemName: "xmark", help: "Close (esc)") { close() }
             }
         }
-        .padding(.horizontal, 5)
-        .padding(.vertical, 3)
-        .glassCapsule(interactive: true)
+        .toolbarCluster()
         .onExitCommand { close() }
         .onChange(of: search.isPresented) { _, presented in
             if presented {
@@ -193,13 +249,12 @@ struct ProgressPill: View {
             .frame(height: 4)
 
             Text("\(Int(state.value * 100))%")
-                .font(.system(.caption, design: .rounded).monospacedDigit())
+                .font(.system(size: 11, design: .rounded).monospacedDigit())
                 .foregroundStyle(.secondary)
                 .frame(width: 32, alignment: .trailing)
         }
-        .frame(width: 138, height: 24)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 3)
-        .glassCapsule()
+        .frame(width: 132)
+        .padding(.horizontal, 8)
+        .toolbarCluster(interactive: false)
     }
 }
