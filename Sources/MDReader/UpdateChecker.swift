@@ -8,9 +8,10 @@ import AppKit
 /// installer that Gatekeeper would stop anyway.
 @MainActor
 enum UpdateChecker {
-    private static let latestRelease = URL(
-        string: "https://api.github.com/repos/astradevelopment/md-reader/releases/latest"
-    )!
+    /// The feed lives on the project's own domain rather than at a host's IP, so
+    /// the server can move without stranding every copy already installed.
+    private static let feed = URL(string: "https://md.dmind.pro/appcast.json")!
+    private static let home = URL(string: "https://md.dmind.pro/")!
 
     private static let lastCheckKey = "update.lastCheckedAt"
     private static let skippedKey = "update.skippedVersion"
@@ -92,25 +93,19 @@ enum UpdateChecker {
     }
 
     private static func fetch() async -> Release? {
-        var request = URLRequest(url: latestRelease)
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        var request = URLRequest(url: feed)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 15
 
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               (response as? HTTPURLResponse)?.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let tag = json["tag_name"] as? String,
-              let pageText = json["html_url"] as? String,
-              let page = URL(string: pageText)
+              let version = json["version"] as? String,
+              let text = json["url"] as? String,
+              let download = URL(string: text)
         else { return nil }
 
-        let assets = json["assets"] as? [[String: Any]] ?? []
-        let dmg = assets
-            .compactMap { $0["browser_download_url"] as? String }
-            .first { $0.hasSuffix(".dmg") }
-            .flatMap(URL.init(string:))
-
-        return Release(version: tag, page: page, download: dmg)
+        return Release(version: version, page: home, download: download)
     }
 
     // MARK: - Telling you about it
