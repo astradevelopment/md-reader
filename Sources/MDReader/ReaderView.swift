@@ -145,13 +145,18 @@ private struct BlocksStack: View, Equatable {
         let firstID = blocks.first?.id
 
         return LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(blocks) { block in
+            ForEach(Array(blocks.enumerated()), id: \.element.id) { index, block in
                 Markdown(block.markdown)
                     .markdownTheme(theme)
                     .textSelection(.enabled)
                     .background(FlashBackdrop(blockID: block.id, state: flash))
                     .id(block.id)
-                    .padding(.top, block.id == firstID ? 0 : spacing(above: block))
+                    .padding(
+                        .top,
+                        block.id == firstID
+                            ? 0
+                            : spacing(above: block, after: index > 0 ? blocks[index - 1] : nil)
+                    )
             }
         }
         .scrollTargetLayout()
@@ -162,11 +167,25 @@ private struct BlocksStack: View, Equatable {
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
-    /// Only a section's opening block needs room above it — MarkdownUI keeps each
-    /// block's own margins, so measured against the previous rendering the whole
-    /// document comes out within fifteen points of where it was.
-    private func spacing(above block: MarkdownDocument.Block) -> CGFloat {
-        guard let level = block.headingLevel else { return 0 }
+    /// Rendering each block on its own means MarkdownUI no longer puts anything
+    /// between them, so the theme's own margins are reproduced here. Measured
+    /// against the previous rendering: twenty paragraphs came to 828 pt with the
+    /// section rendered whole and 524 pt broken into blocks — 304 pt lost across
+    /// nineteen gaps, exactly the 16 pt the theme gives a paragraph.
+    private func spacing(above block: MarkdownDocument.Block,
+                         after previous: MarkdownDocument.Block?) -> CGFloat {
+        if let level = block.headingLevel { return aboveHeading(level) }
+        if previous?.isThematicBreak == true { return ruleGap }
+        if block.isThematicBreak { return ruleGap }
+        if let level = previous?.headingLevel { return belowHeading(level) }
+        return paragraphGap
+    }
+
+    private var paragraphGap: CGFloat { 16 }
+    private var ruleGap: CGFloat { 24 }
+
+    /// The air above a section, which is the theme's top margin for its heading.
+    private func aboveHeading(_ level: Int) -> CGFloat {
         switch level {
         case 1: return 48
         case 2: return 40
@@ -174,6 +193,17 @@ private struct BlocksStack: View, Equatable {
         case 4: return 20
         case 5: return 16
         default: return 12
+        }
+    }
+
+    /// And the gap the theme leaves under one, before the text it introduces.
+    private func belowHeading(_ level: Int) -> CGFloat {
+        switch level {
+        case 1, 2: return 12
+        case 3: return 10
+        case 4: return 8
+        case 5: return 6
+        default: return 4
         }
     }
 }

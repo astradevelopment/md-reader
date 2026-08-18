@@ -54,6 +54,8 @@ final class MarkdownDocument: ObservableObject, Identifiable {
         let markdown: MarkdownContent
         /// Set only on the first block of a section, for the spacing above it.
         let headingLevel: Int?
+        /// A rule on its own wants air on both sides of it.
+        let isThematicBreak: Bool
 
         static func == (lhs: Block, rhs: Block) -> Bool { lhs.id == rhs.id }
     }
@@ -115,12 +117,21 @@ final class MarkdownDocument: ObservableObject, Identifiable {
                         sectionTitle: title,
                         content: text,
                         markdown: MarkdownContent(text),
-                        headingLevel: index == 0 ? (section.heading?.level ?? 0) : nil
+                        headingLevel: index == 0 ? (section.heading?.level ?? 0) : nil,
+                        isThematicBreak: Self.isThematicBreak(text)
                     )
                 )
             }
         }
         return result
+    }
+
+    private static func isThematicBreak(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 3, let first = trimmed.first, "-*_".contains(first) else {
+            return false
+        }
+        return trimmed.allSatisfy { $0 == first }
     }
 
     static func extractHeadings(_ text: String) -> [Heading] {
