@@ -125,7 +125,11 @@ private struct SectionsStack: View, Equatable {
         let theme = ThemeCache.reader(fontSize: fontSize)
         let firstID = sections.first?.id
 
-        return VStack(alignment: .leading, spacing: 0) {
+        // Lazy, not eager: laying out a 76 KB spec up front cost ~800 ms before the
+        // first frame. The cost is that ScrollView's reported content height is an
+        // estimate until the whole document has been realised, so the progress
+        // readout runs slightly ahead on a first pass through a long file.
+        return LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(sections) { section in
                 Markdown(section.markdown)
                     .markdownTheme(theme)
