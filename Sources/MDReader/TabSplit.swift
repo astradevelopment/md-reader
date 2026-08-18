@@ -13,8 +13,8 @@ enum TabSplit {
     ) -> Int {
         let room = available - buttonWidth - spacing
         let perTab = tabWidth + spacing
-        guard perTab > 0 else { return 1 }
-        return max(1, Int((room / perTab).rounded(.down)))
+        guard perTab > 0 else { return 0 }
+        return max(0, Int((room / perTab).rounded(.down)))
     }
 
     /// Splits `ids` in document order, never hiding `selected`.
@@ -25,8 +25,12 @@ enum TabSplit {
     ) -> (visible: [ID], overflow: [ID]) {
         guard ids.count > capacity else { return (ids, []) }
 
-        // One slot is spent on the overflow menu itself.
-        let slots = max(1, capacity - 1)
+        // One slot is spent on the overflow menu itself. With nothing left over,
+        // every tab goes into that menu rather than pushing the toolbar's own
+        // controls into the system overflow.
+        let slots = max(0, capacity - 1)
+        guard slots > 0 else { return ([], ids) }
+
         var visible = Set(ids.prefix(slots))
 
         if let selected, ids.contains(selected), !visible.contains(selected) {

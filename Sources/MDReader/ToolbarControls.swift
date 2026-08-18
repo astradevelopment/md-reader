@@ -153,7 +153,7 @@ struct SearchBar: View {
                 TextField("Find in document", text: $search.query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
-                    .frame(width: 150)
+                    .frame(width: 120)
                     .focused($focused)
                     .onSubmit { step(forward: true) }
 

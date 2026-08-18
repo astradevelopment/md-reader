@@ -7,8 +7,10 @@ import SwiftUI
 /// window's usable width and each cluster reports what it occupies.
 @MainActor
 final class ToolbarLayout: ObservableObject {
-    /// Toolbar side margins plus the spacers between clusters.
-    private static let chrome: CGFloat = 72
+    /// The toolbar's own furniture: side margins, the spacers between clusters
+    /// and the sidebar toggle that sits ahead of the tabs. Generous on purpose —
+    /// underestimating it is what let the system overflow appear at all.
+    private static let chrome: CGFloat = 112
 
     @Published private(set) var availableForTabs: CGFloat = 600
     @Published private(set) var detailWidth: CGFloat = 1000
