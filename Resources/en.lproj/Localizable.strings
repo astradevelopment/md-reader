@@ -59,3 +59,15 @@
 "The app is running from %@. Launch Services keys the association to that exact path — move MD Reader.app and .md files go back to the previous app. Run install.sh to keep it in /Applications instead." = "The app is running from %@. Launch Services keys the association to that exact path — move MD Reader.app and .md files go back to the previous app. Run install.sh to keep it in /Applications instead.";
 "Couldn't set MD Reader as the default" = "Couldn't set MD Reader as the default";
 "Launch Services turned the request down. Set it manually: right-click a .md file in Finder, choose Get Info, pick MD Reader under “Open with”, then click “Change All…”." = "Launch Services turned the request down. Set it manually: right-click a .md file in Finder, choose Get Info, pick MD Reader under “Open with”, then click “Change All…”.";
+
+/* Updates */
+"Check for Updates…" = "Check for Updates…";
+"Couldn't check for updates" = "Couldn't check for updates";
+"The releases page could not be reached. Try again later." = "The releases page could not be reached. Try again later.";
+"MD Reader is up to date" = "MD Reader is up to date";
+"You have version %@." = "You have version %@.";
+"MD Reader %@ is available" = "MD Reader %@ is available";
+"You have %@. The download opens in your browser; drag the new copy over the old one." = "You have %@. The download opens in your browser; drag the new copy over the old one.";
+"Download" = "Download";
+"Later" = "Later";
+"Skip This Version" = "Skip This Version";

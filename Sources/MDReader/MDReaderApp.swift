@@ -18,6 +18,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             MainActor.assumeIsolated { DefaultHandler.promptIfNeeded() }
         }
+        // Once a day at most, and silent unless there is something newer.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            MainActor.assumeIsolated { UpdateChecker.checkQuietly() }
+        }
     }
 }
 
@@ -46,6 +50,9 @@ struct MDReaderApp: App {
         // mid-window (606 pt short of the edge, against 8 pt when enabled).
         .windowToolbarStyle(.unified(showsTitle: true))
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") { UpdateChecker.checkNow() }
+            }
             CommandGroup(replacing: .newItem) {
                 Button("Open…") { store.openPanel() }
                     .keyboardShortcut("o", modifiers: .command)

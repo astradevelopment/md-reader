@@ -1,0 +1,43 @@
+MD Reader — первый запуск на другом Mac
+=======================================
+
+macOS откажется открыть приложение: оно подписано ad-hoc, а не сертификатом
+Apple Developer, и не проходило нотаризацию. Это не поломка — так система
+относится ко всему, что скачано не из App Store и не подписано платным
+сертификатом.
+
+Как открыть (один раз):
+
+1. Перетащите MD Reader в Applications.
+2. Откройте Терминал (Программы → Утилиты → Терминал).
+3. Вставьте строку и нажмите Enter:
+
+       xattr -dr com.apple.quarantine "/Applications/MD Reader.app"
+
+4. Запустите MD Reader обычным способом.
+
+Команда снимает с приложения метку «скачано из интернета». Больше её
+выполнять не потребуется — ни при этом запуске, ни при следующих.
+
+Если Терминал использовать не хочется: попробуйте открыть приложение,
+получите отказ, затем откройте Системные настройки → Конфиденциальность и
+безопасность, пролистайте вниз и нажмите «Всё равно открыть». На macOS 15 и
+новее эта кнопка появляется не всегда — тогда поможет только команда выше.
+
+---
+
+First launch on another Mac
+===========================
+
+macOS will refuse to open the app: it is ad-hoc signed rather than signed with
+an Apple Developer certificate, and it has not been notarised.
+
+To open it, once:
+
+1. Drag MD Reader to Applications.
+2. Open Terminal (Applications → Utilities → Terminal).
+3. Paste this line and press Enter:
+
+       xattr -dr com.apple.quarantine "/Applications/MD Reader.app"
+
+4. Launch MD Reader normally.
