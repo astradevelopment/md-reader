@@ -42,8 +42,9 @@ struct TabStrip: View {
                     showsClose: store.documents.count > 1,
                     fixedWidth: store.documents.count > 1 ? tabWidth : nil,
                     hover: hover,
-                    // Enough of the document to recognise it by, no more.
-                    opening: Array(document.blocks.prefix(5)),
+                    // Enough to fill the little page rather than run out halfway
+                    // down it — what does not fit is clipped and faded anyway.
+                    opening: Array(document.blocks.prefix(14)),
                     onSelect: { store.select(document.id) },
                     onClose: { store.close(document.id) },
                     onDrop: { dragged in store.move(dragged, onto: document.id) }
