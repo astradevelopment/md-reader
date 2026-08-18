@@ -132,15 +132,23 @@ struct ContentView: View {
             // window's edge.
             ToolbarSpacer(.flexible, placement: .primaryAction)
 
-            ToolbarItem(placement: .primaryAction) {
-                controlClusters
+            // An item holding an empty stack measures as zero-width, which AppKit
+            // complains about — so at the narrowest sizes there is no item at all.
+            if showsAnyCluster {
+                ToolbarItem(placement: .primaryAction) {
+                    controlClusters
+                }
+                .sharedBackgroundVisibility(.hidden)
             }
-            .sharedBackgroundVisibility(.hidden)
-        } else {
+        } else if showsAnyCluster {
             ToolbarItem(placement: .primaryAction) {
                 controlClusters
             }
         }
+    }
+
+    private var showsAnyCluster: Bool {
+        toolbarLayout.showsSearch || toolbarLayout.showsFontSize || toolbarLayout.showsProgress
     }
 
     /// All three capsules in a single toolbar item.

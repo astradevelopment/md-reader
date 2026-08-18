@@ -71,7 +71,7 @@ final class MarkdownDocument: ObservableObject, Identifiable {
             return true
         } catch {
             let alert = NSAlert()
-            alert.messageText = "Couldn't open file"
+            alert.messageText = String(localized: "Couldn't open file")
             alert.informativeText = error.localizedDescription
             alert.alertStyle = .warning
             alert.runModal()

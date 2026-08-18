@@ -29,6 +29,12 @@ mkdir -p "$APP_BUNDLE/Contents/Resources"
 cp "$BIN" "$APP_BUNDLE/Contents/MacOS/MDReader"
 cp Resources/Info.plist "$APP_BUNDLE/Contents/Info.plist"
 
+# Localisations go straight into the bundle's Resources, not into an SPM
+# resource bundle: SwiftUI and String(localized:) look them up in Bundle.main.
+for lproj in Resources/*.lproj; do
+    [[ -d "$lproj" ]] && cp -R "$lproj" "$APP_BUNDLE/Contents/Resources/"
+done
+
 # Regenerate icon if missing, then copy into bundle.
 if [[ ! -f AppIcon.icns ]]; then
     echo "→ Generating AppIcon.icns…"

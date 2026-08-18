@@ -27,7 +27,9 @@ struct SidebarView: View {
     // MARK: - Header
 
     private var header: some View {
-        Text(showingResults ? resultsTitle : "CONTENTS")
+        // Verbatim: the text is already localised, and `Text(String)` would not
+        // look it up a second time anyway.
+        Text(verbatim: headerTitle)
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(.tertiary)
             .tracking(0.8)
@@ -36,9 +38,11 @@ struct SidebarView: View {
             .padding(.bottom, 8)
     }
 
-    private var resultsTitle: String {
-        if search.matches.isEmpty { return "NO RESULTS" }
-        return "RESULTS · \(search.matches.count)\(search.didHitLimit ? "+" : "")"
+    private var headerTitle: String {
+        guard showingResults else { return String(localized: "CONTENTS") }
+        if search.matches.isEmpty { return String(localized: "NO RESULTS") }
+        let suffix = search.didHitLimit ? "+" : ""
+        return String(localized: "RESULTS · \(search.matches.count)") + suffix
     }
 
     // MARK: - Table of contents
@@ -46,7 +50,11 @@ struct SidebarView: View {
     @ViewBuilder
     private var contents: some View {
         if document.headings.isEmpty {
-            placeholder(document.content.isEmpty ? "No file open" : "No headings found")
+            placeholder(
+                document.content.isEmpty
+                    ? String(localized: "No file open")
+                    : String(localized: "No headings found")
+            )
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -84,7 +92,7 @@ struct SidebarView: View {
     @ViewBuilder
     private var results: some View {
         if search.matches.isEmpty {
-            placeholder("Nothing matches “\(search.query)”")
+            placeholder(String(localized: "Nothing matches “\(search.query)”"))
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -112,7 +120,7 @@ struct SidebarView: View {
     private func placeholder(_ text: String) -> some View {
         VStack {
             Spacer()
-            Text(text)
+            Text(verbatim: text)
                 .font(.callout)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)

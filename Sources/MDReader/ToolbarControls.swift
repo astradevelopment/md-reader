@@ -37,7 +37,8 @@ extension View {
 /// A borderless icon button with a round hover halo.
 struct CapsuleIconButton: View {
     let systemName: String
-    var help: String = ""
+    /// LocalizedStringKey, not String: `.help(String)` would skip the lookup.
+    var help: LocalizedStringKey = ""
     var enabled: Bool = true
     let action: () -> Void
 
@@ -109,7 +110,7 @@ struct FontSizeControl: View {
             .focused($focused)
             .onSubmit { focused = false }
 
-            Text("%")
+            Text(verbatim: "%")
                 .font(.system(size: 11, design: .rounded))
                 .foregroundStyle(.secondary)
         }
@@ -157,7 +158,7 @@ struct SearchBar: View {
                     .onSubmit { step(forward: true) }
 
                 if search.hasQuery {
-                    Text(counterText)
+                    Text(verbatim: counterText)
                         .font(.system(size: 11, design: .rounded).monospacedDigit())
                         .foregroundStyle(.secondary)
                         .frame(minWidth: 40, alignment: .trailing)
@@ -196,7 +197,7 @@ struct SearchBar: View {
     }
 
     private var counterText: String {
-        if search.matches.isEmpty { return "no results" }
+        if search.matches.isEmpty { return String(localized: "no results") }
         let suffix = search.didHitLimit ? "+" : ""
         return "\(search.currentIndex + 1)/\(search.matches.count)\(suffix)"
     }
@@ -238,7 +239,7 @@ struct ProgressPill: View {
             }
             .frame(height: 4)
 
-            Text("\(Int(state.value * 100))%")
+            Text(verbatim: "\(Int(state.value * 100))%")
                 .font(.system(size: 11, design: .rounded).monospacedDigit())
                 .foregroundStyle(.secondary)
                 .frame(width: 32, alignment: .trailing)

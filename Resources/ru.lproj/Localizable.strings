@@ -1,0 +1,61 @@
+/* Menus */
+"Open…" = "Открыть…";
+"Open Recent" = "Недавние документы";
+"No Recent Documents" = "Нет недавних документов";
+"Open All Recent" = "Открыть все недавние";
+"Clear Menu" = "Очистить меню";
+"Close Tab" = "Закрыть вкладку";
+"Make MD Reader the Default for Markdown…" = "Открывать Markdown в MD Reader…";
+"Find…" = "Найти…";
+"Find Next" = "Найти далее";
+"Find Previous" = "Найти ранее";
+"Toggle Sidebar" = "Боковое меню";
+"Next Tab" = "Следующая вкладка";
+"Previous Tab" = "Предыдущая вкладка";
+"Bigger Text" = "Крупнее";
+"Smaller Text" = "Мельче";
+"Actual Size" = "Реальный размер";
+
+/* Start screen */
+"Open a Markdown file" = "Откройте файл Markdown";
+"Drag a .md file into this window, or use ⌘O." = "Перетащите файл .md в это окно или нажмите ⌘O.";
+"RECENT" = "НЕДАВНИЕ";
+"Open All" = "Открыть все";
+
+/* Sidebar */
+"CONTENTS" = "СОДЕРЖАНИЕ";
+"NO RESULTS" = "НИЧЕГО НЕ НАЙДЕНО";
+"RESULTS · %lld" = "НАЙДЕНО · %lld";
+"No file open" = "Файл не открыт";
+"No headings found" = "Заголовков нет";
+"Nothing matches “%@”" = "По запросу «%@» ничего не найдено";
+"Beginning" = "Начало";
+
+/* Toolbar */
+"Find in document" = "Поиск по документу";
+"no results" = "ничего";
+"Previous match (⇧⌘G)" = "Предыдущее совпадение (⇧⌘G)";
+"Next match (⌘G)" = "Следующее совпадение (⌘G)";
+"Close (esc)" = "Закрыть (esc)";
+"Smaller text (⌘−)" = "Мельче (⌘−)";
+"Larger text (⌘+)" = "Крупнее (⌘+)";
+"Type a size, or use ⌘+ / ⌘−" = "Введите размер или используйте ⌘+ / ⌘−";
+"Actual Size (100%)" = "Реальный размер (100%)";
+
+/* Tabs */
+"Open a file (⌘O)" = "Открыть файл (⌘O)";
+"%lld more open" = "ещё открыто: %lld";
+
+/* Alerts */
+"Couldn't open file" = "Не удалось открыть файл";
+"Open Markdown files in MD Reader?" = "Открывать файлы Markdown в MD Reader?";
+"Markdown files currently open in %@. MD Reader can take over .md, .markdown and .mkd files." = "Сейчас файлы Markdown открывает %@. MD Reader может взять на себя .md, .markdown и .mkd.";
+"MD Reader can become the default app for .md, .markdown and .mkd files." = "MD Reader может стать приложением по умолчанию для .md, .markdown и .mkd.";
+"Make Default" = "Сделать основным";
+"Not Now" = "Не сейчас";
+"Don't Ask Again" = "Больше не спрашивать";
+"MD Reader now opens Markdown files" = "Теперь Markdown открывает MD Reader";
+"Keep the app in /Applications so the association survives updates." = "Держите приложение в /Applications — тогда привязка переживёт обновления.";
+"The app is running from %@. Launch Services keys the association to that exact path — move MD Reader.app and .md files go back to the previous app. Run install.sh to keep it in /Applications instead." = "Приложение запущено из %@. Launch Services привязывает ассоциацию к этому конкретному пути: стоит переместить MD Reader.app, и файлы .md вернутся прежнему приложению. Запустите install.sh, чтобы держать его в /Applications.";
+"Couldn't set MD Reader as the default" = "Не удалось назначить MD Reader основным";
+"Launch Services turned the request down. Set it manually: right-click a .md file in Finder, choose Get Info, pick MD Reader under “Open with”, then click “Change All…”." = "Launch Services отклонил запрос. Назначьте вручную: правый клик по файлу .md в Finder, «Свойства», выберите MD Reader в разделе «Открывать в программе» и нажмите «Настроить все…».";

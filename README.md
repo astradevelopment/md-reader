@@ -22,6 +22,7 @@ where you are. MD Reader is built around reading one long document at a time.
 - **Text size as a percentage** — ⌘+ / ⌘− / ⌘0, or click the number and type one.
   Remembered between launches.
 - **Reading progress** in the toolbar.
+- **English and Russian**, chosen from the system language — there is no setting.
 - Liquid Glass controls on macOS 26, with a material fallback below it.
 
 ## Build

@@ -91,7 +91,7 @@ private struct OverflowMenu: View {
             }
         } label: {
             HStack(spacing: 1) {
-                Text("\(documents.count)")
+                Text(verbatim: "\(documents.count)")
                     .font(.system(size: 10, design: .rounded).monospacedDigit())
                 Image(systemName: "chevron.down")
                     .font(.system(size: 9, weight: .semibold))

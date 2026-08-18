@@ -50,18 +50,20 @@ enum DefaultHandler {
         didPromptThisLaunch = true
 
         let alert = NSAlert()
-        alert.messageText = "Open Markdown files in MD Reader?"
+        alert.messageText = String(localized: "Open Markdown files in MD Reader?")
         if let holder = currentHandlerName {
-            alert.informativeText =
-                "Markdown files currently open in \(holder). MD Reader can take over .md, "
-                + ".markdown and .mkd files."
+            alert.informativeText = String(
+                localized: "Markdown files currently open in \(holder). MD Reader can take over .md, .markdown and .mkd files."
+            )
         } else {
-            alert.informativeText = "MD Reader can become the default app for .md, .markdown and .mkd files."
+            alert.informativeText = String(
+                localized: "MD Reader can become the default app for .md, .markdown and .mkd files."
+            )
         }
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Make Default")
-        alert.addButton(withTitle: "Not Now")
-        alert.addButton(withTitle: "Don't Ask Again")
+        alert.addButton(withTitle: String(localized: "Make Default"))
+        alert.addButton(withTitle: String(localized: "Not Now"))
+        alert.addButton(withTitle: String(localized: "Don't Ask Again"))
 
         switch alert.runModal() {
         case .alertFirstButtonReturn:
@@ -104,21 +106,24 @@ enum DefaultHandler {
     private static func report(succeeded: Bool, failure: Error?, appURL: URL) {
         let alert = NSAlert()
         if succeeded {
-            alert.messageText = "MD Reader now opens Markdown files"
+            alert.messageText = String(localized: "MD Reader now opens Markdown files")
             alert.alertStyle = .informational
             if !appURL.path.contains("/Applications/") {
-                alert.informativeText =
-                    "The app is running from \(appURL.deletingLastPathComponent().path). Launch Services "
-                    + "keys the association to that exact path — move MD Reader.app and .md files go back "
-                    + "to the previous app. Run install.sh to keep it in /Applications instead."
+                let folder = appURL.deletingLastPathComponent().path
+                alert.informativeText = String(
+                    localized: "The app is running from \(folder). Launch Services keys the association to that exact path — move MD Reader.app and .md files go back to the previous app. Run install.sh to keep it in /Applications instead."
+                )
             } else {
-                alert.informativeText = "Keep the app in /Applications so the association survives updates."
+                alert.informativeText = String(
+                    localized: "Keep the app in /Applications so the association survives updates."
+                )
             }
         } else {
-            alert.messageText = "Couldn't set MD Reader as the default"
+            alert.messageText = String(localized: "Couldn't set MD Reader as the default")
             alert.informativeText = failure?.localizedDescription
-                ?? "Launch Services turned the request down. Set it manually: right-click a .md file "
-                + "in Finder, choose Get Info, pick MD Reader under “Open with”, then click “Change All…”."
+                ?? String(
+                    localized: "Launch Services turned the request down. Set it manually: right-click a .md file in Finder, choose Get Info, pick MD Reader under “Open with”, then click “Change All…”."
+                )
             alert.alertStyle = .warning
         }
         alert.runModal()

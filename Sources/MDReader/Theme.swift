@@ -165,12 +165,12 @@ extension Theme {
                 .relativeFrame(minWidth: .em(1.5), alignment: .trailing)
         }
         .bulletedListMarker { _ in
-            Text("•")
+            Text(verbatim: "•")
                 .foregroundStyle(.secondary)
                 .relativeFrame(minWidth: .em(1.5), alignment: .trailing)
         }
         .numberedListMarker { config in
-            Text("\(config.itemNumber).")
+            Text(verbatim: "\(config.itemNumber).")
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 .relativeFrame(minWidth: .em(1.5), alignment: .trailing)

@@ -51,7 +51,7 @@ final class SearchModel: ObservableObject {
         corpus = sections.map {
             Entry(
                 id: $0.id,
-                title: $0.heading?.text ?? "Beginning",
+                title: $0.heading?.text ?? String(localized: "Beginning"),
                 lines: $0.content.components(separatedBy: "\n")
             )
         }
