@@ -1,59 +1,34 @@
 import SwiftUI
 
-/// Browser-style tab bar across the top of the document pane.
+/// Browser-style tabs, living in the toolbar row itself — the tab *is* the title.
 struct TabStrip: View {
     @ObservedObject var store: DocumentStore
 
     var body: some View {
-        HStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        ForEach(store.documents) { document in
-                            TabItem(
-                                title: document.fileName,
-                                isSelected: document.id == store.selectedID,
-                                onSelect: { store.select(document.id) },
-                                onClose: { store.close(document.id) }
-                            )
-                            .id(document.id)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                }
-                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-                .onChange(of: store.selectedID) { _, id in
-                    guard let id else { return }
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        proxy.scrollTo(id, anchor: .center)
-                    }
-                }
+        HStack(spacing: 2) {
+            ForEach(store.documents) { document in
+                TabPill(
+                    title: document.fileName,
+                    isSelected: document.id == store.selectedID,
+                    showsClose: store.documents.count > 1,
+                    onSelect: { store.select(document.id) },
+                    onClose: { store.close(document.id) }
+                )
             }
 
-            Button {
+            CapsuleIconButton(systemName: "plus", help: "Open a file (⌘O)") {
                 store.openPanel()
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .medium))
-                    .frame(width: 24, height: 24)
-                    .contentShape(Circle())
             }
-            .buttonStyle(HoverCircleButtonStyle())
-            .padding(.trailing, 8)
-            .help("Open a file (⌘O)")
         }
-        .frame(height: 36)
-        .background(.bar)
-        .overlay(alignment: .bottom) {
-            Divider().overlay(Color.dividerSoft)
-        }
+        .toolbarCluster()
+        .animation(.snappy(duration: 0.2), value: store.documents.count)
     }
 }
 
-private struct TabItem: View {
+private struct TabPill: View {
     let title: String
     let isSelected: Bool
+    let showsClose: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
 
@@ -61,62 +36,44 @@ private struct TabItem: View {
     @State private var closeHovering = false
 
     var body: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 4) {
             Text(title)
                 .font(.system(size: 11, weight: isSelected ? .medium : .regular))
                 .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                 .lineLimit(1)
                 .truncationMode(.middle)
 
-            // Only the active or hovered tab offers a close button, so a crowded
-            // strip stays readable.
-            Image(systemName: "xmark")
-                .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(.secondary)
-                .frame(width: 15, height: 15)
-                .background(
-                    Circle().fill(Color.primary.opacity(closeHovering ? 0.14 : 0))
-                )
-                .contentShape(Circle())
-                .opacity(hovering || isSelected ? 1 : 0)
-                .onHover { closeHovering = $0 }
-                .onTapGesture(perform: onClose)
+            if showsClose {
+                // Only the active or hovered tab offers a close button, so a
+                // crowded strip stays readable.
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 15, height: 15)
+                    .background(
+                        Circle().fill(Color.primary.opacity(closeHovering ? 0.16 : 0))
+                    )
+                    .contentShape(Circle())
+                    .opacity(hovering || isSelected ? 1 : 0)
+                    .onHover { closeHovering = $0 }
+                    .onTapGesture(perform: onClose)
+            }
         }
-        .padding(.leading, 11)
-        .padding(.trailing, 6)
-        .frame(height: 26)
-        .frame(minWidth: 90, maxWidth: 190)
-        .background(background)
-        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.leading, 10)
+        .padding(.trailing, showsClose ? 4 : 10)
+        .frame(height: ToolbarMetrics.contentHeight)
+        .frame(minWidth: 64, maxWidth: 170)
+        .background(
+            Capsule().fill(Color.primary.opacity(fillOpacity))
+        )
+        .contentShape(Capsule())
         .onHover { hovering = $0 }
         .onTapGesture(perform: onSelect)
         .help(title)
     }
 
-    @ViewBuilder
-    private var background: some View {
-        if isSelected {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(nsColor: .textBackgroundColor))
-                .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
-        } else {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.primary.opacity(hovering ? 0.07 : 0))
-        }
-    }
-}
-
-/// A plain button that grows a round hover halo — matches the toolbar controls.
-struct HoverCircleButtonStyle: ButtonStyle {
-    @State private var hovering = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(.secondary)
-            .background(
-                Circle().fill(Color.primary.opacity(hovering ? 0.1 : 0))
-            )
-            .opacity(configuration.isPressed ? 0.5 : 1)
-            .onHover { hovering = $0 }
+    private var fillOpacity: Double {
+        if isSelected { return 0.12 }
+        return hovering ? 0.06 : 0
     }
 }

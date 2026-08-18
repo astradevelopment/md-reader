@@ -19,17 +19,18 @@ struct ContentView: View {
             sidebar
                 .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 420)
         } detail: {
-            VStack(spacing: 0) {
-                if store.documents.count > 1 {
-                    TabStrip(store: store)
-                }
-                detail
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(nsColor: .textBackgroundColor))
+            detail
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(nsColor: .textBackgroundColor))
         }
         .navigationTitle(store.selected?.fileName ?? "MD Reader")
         .toolbar {
+            if !store.isEmpty {
+                // Centre of the toolbar row: the tabs stand in for the window title.
+                ToolbarItem(placement: .principal) {
+                    TabStrip(store: store)
+                }
+            }
             if store.selected != nil {
                 toolbarControls
             }
