@@ -52,6 +52,12 @@ struct TabStrip: View {
 
             OpenMenu(store: store)
         }
+        // A hard ceiling, not just an arithmetic one. If the strip's intrinsic
+        // width ever exceeded what the toolbar has left, the toolbar would take
+        // the whole item into its own overflow popover — tab pills rendered
+        // inside a system menu — instead of letting them collapse into the
+        // chevron of their own.
+        .frame(maxWidth: max(60, layout.availableForTabs), alignment: .leading)
         .animation(.snappy(duration: 0.2), value: store.documents.count)
     }
 
