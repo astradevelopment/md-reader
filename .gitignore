@@ -8,4 +8,8 @@ MD Reader.app/
 AppIcon.icns
 AppIcon.iconset/
 
+# Disk image and its staging, produced by make-dmg.sh
+MD Reader.dmg
+build/
+
 .DS_Store
