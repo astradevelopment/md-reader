@@ -1,21 +1,30 @@
 import SwiftUI
 
-/// How much room the tab strip has left after the right-hand clusters.
+/// How much room the tab strip has left beside the toolbar's controls.
 ///
 /// A toolbar item is sized to its content rather than being offered a width, so
-/// the strip cannot measure its own space. Instead the detail pane reports the
-/// window's usable width and each cluster reports what it occupies.
+/// the strip cannot measure its own space. The detail pane reports the usable
+/// width instead, and the controls report what they occupy.
 @MainActor
 final class ToolbarLayout: ObservableObject {
-    /// The toolbar's own furniture: side margins, the spacers between clusters
-    /// and the sidebar toggle that sits ahead of the tabs. Generous on purpose —
-    /// underestimating it is what let the system overflow appear at all.
+    /// The toolbar's own furniture: side margins, spacers, and the sidebar toggle
+    /// that sits ahead of the tabs.
     private static let chrome: CGFloat = 112
+
+    /// Room always kept for the controls, whatever they currently measure.
+    ///
+    /// They are narrow at rest and wide with the search field open, and reserving
+    /// only what they take *now* is what let the toolbar overflow: the tabs would
+    /// spread into the slack, then search would open with nowhere to go. Worse,
+    /// a cluster in the overflow popover stops being drawn, so it stops reporting
+    /// a width — leaving the tabs no reason to give the space back. Measured at
+    /// its widest, search open with matches, the cluster is 394 pt.
+    private static let controlsReserve: CGFloat = 400
 
     @Published private(set) var availableForTabs: CGFloat = 600
     @Published private(set) var detailWidth: CGFloat = 1000
 
-    private var clusters: [String: CGFloat] = [:]
+    private var controlsWidth: CGFloat = 0
 
     func reportDetailWidth(_ width: CGFloat) {
         guard abs(detailWidth - width) > 0.5 else { return }
@@ -24,21 +33,18 @@ final class ToolbarLayout: ObservableObject {
     }
 
     func reportCluster(_ key: String, width: CGFloat) {
-        // A cluster is never really zero wide. It measures as zero the moment the
-        // toolbar takes it into its overflow popover — and believing that would
-        // hand its width to the tabs, which is exactly what keeps it there. A
-        // latch: once overflowed, never recovered.
-        guard width > 1 else { return }
-        guard abs((clusters[key] ?? -1) - width) > 0.5 else { return }
-        clusters[key] = width
+        // Zero means the item is not on screen — being redrawn, or taken into the
+        // overflow. Never a real measurement.
+        guard width > 1, abs(controlsWidth - width) > 0.5 else { return }
+        controlsWidth = width
         recompute()
     }
 
     private func recompute() {
-        let controls = clusters.values.reduce(0, +)
-        // Never more than half the pane, whatever the arithmetic says: the tabs
-        // are the part that can afford to give way.
-        let value = min(max(120, detailWidth - controls - Self.chrome), detailWidth * 0.5)
+        let controls = max(controlsWidth, Self.controlsReserve)
+        // Never more than half the pane either: the tabs are the part that can
+        // afford to give way.
+        let value = min(max(60, detailWidth - controls - Self.chrome), detailWidth * 0.5)
         // A coarse threshold: the search field animates its width open and shut,
         // and republishing every frame of that would churn the whole toolbar.
         guard abs(value - availableForTabs) > 8 else { return }
