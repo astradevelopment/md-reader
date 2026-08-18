@@ -105,7 +105,11 @@ struct SidebarView: View {
                         skipAutoScroll = false
                         return
                     }
-                    proxy.scrollTo(id, anchor: .center)
+                    // Animated: following the document one section at a time reads
+                    // as gliding, while an instant scrollTo per crossing snaps.
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        proxy.scrollTo(id, anchor: .center)
+                    }
                 }
             }
         }

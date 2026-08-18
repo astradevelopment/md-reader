@@ -24,6 +24,11 @@ final class ToolbarLayout: ObservableObject {
     }
 
     func reportCluster(_ key: String, width: CGFloat) {
+        // A cluster is never really zero wide. It measures as zero the moment the
+        // toolbar takes it into its overflow popover — and believing that would
+        // hand its width to the tabs, which is exactly what keeps it there. A
+        // latch: once overflowed, never recovered.
+        guard width > 1 else { return }
         guard abs((clusters[key] ?? -1) - width) > 0.5 else { return }
         clusters[key] = width
         recompute()
@@ -31,7 +36,9 @@ final class ToolbarLayout: ObservableObject {
 
     private func recompute() {
         let controls = clusters.values.reduce(0, +)
-        let value = max(120, detailWidth - controls - Self.chrome)
+        // Never more than half the pane, whatever the arithmetic says: the tabs
+        // are the part that can afford to give way.
+        let value = min(max(120, detailWidth - controls - Self.chrome), detailWidth * 0.5)
         // A coarse threshold: the search field animates its width open and shut,
         // and republishing every frame of that would churn the whole toolbar.
         guard abs(value - availableForTabs) > 8 else { return }
