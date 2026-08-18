@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""Downloads and update checks for MD Reader, read from Caddy's access log.
+
+Usage:  md-stats [days]      # default: everything in the logs
+"""
+import glob
+import gzip
+import json
+import os
+import sys
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta, timezone
+
+LOG_DIR = os.path.expanduser("~/md-reader-logs")
+since = None
+if len(sys.argv) > 1:
+    try:
+        since = datetime.now(timezone.utc) - timedelta(days=float(sys.argv[1]))
+    except ValueError:
+        sys.exit("usage: md-stats [days]")
+
+
+def entries():
+    """Every log line, current file and rolled ones alike."""
+    for path in sorted(glob.glob(os.path.join(LOG_DIR, "access*.log*"))):
+        opener = gzip.open if path.endswith(".gz") else open
+        try:
+            with opener(path, "rt", errors="replace") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        yield json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+        except OSError:
+            continue
+
+
+downloads = []          # (when, ip, version, agent)
+checks = []             # (when, ip, agent)
+other = Counter()
+
+for event in entries():
+    request = event.get("request", {})
+    uri = request.get("uri", "")
+    ip = request.get("client_ip") or request.get("remote_ip", "?")
+    ip = ip.rsplit(":", 1)[0] if ip.count(":") == 1 and "." in ip else ip
+    when = datetime.fromtimestamp(event.get("ts", 0), timezone.utc)
+    agent = (request.get("headers", {}).get("User-Agent") or ["-"])[0]
+    status = event.get("status", 0)
+
+    if since and when < since:
+        continue
+
+    # A download only counts when it actually delivered the file. A 206 is a
+    # resumed or ranged fetch, which is still someone taking the app.
+    if uri.endswith(".dmg") and status in (200, 206):
+        version = uri.rsplit("/", 1)[-1].removeprefix("MD-Reader-").removesuffix(".dmg")
+        downloads.append((when, ip, version, agent))
+    elif uri.startswith("/appcast.json") and status == 200:
+        checks.append((when, ip, agent))
+    elif status == 200:
+        other[uri] += 1
+
+
+def block(title, rows):
+    print(f"\n{title}")
+    print("─" * len(title))
+    if not rows:
+        print("  —")
+        return
+    for row in rows:
+        print(f"  {row}")
+
+
+span = "за всё время" if since is None else f"за последние {sys.argv[1]} дн."
+print(f"MD Reader — статистика {span}")
+
+block("Скачивания приложения", [
+    f"всего: {len(downloads)}",
+    f"уникальных адресов: {len(set(ip for _, ip, _, _ in downloads))}",
+])
+
+by_version = Counter(v for _, _, v, _ in downloads)
+if by_version:
+    block("По версиям", [f"{v}: {n}" for v, n in sorted(by_version.items(), reverse=True)])
+
+by_ip = defaultdict(list)
+for when, ip, version, _ in downloads:
+    by_ip[ip].append((when, version))
+if by_ip:
+    block("Кто скачивал", [
+        f"{ip:<16} {len(items)}×   последний раз {max(w for w, _ in items):%d.%m %H:%M} UTC"
+        for ip, items in sorted(by_ip.items(), key=lambda kv: -len(kv[1]))
+    ])
+
+block("Проверки обновлений", [
+    f"всего: {len(checks)}",
+    f"уникальных адресов: {len(set(ip for _, ip, _ in checks))}",
+])
+
+recent = sorted(downloads, key=lambda d: d[0], reverse=True)[:10]
+if recent:
+    block("Последние скачивания", [
+        f"{when:%d.%m %H:%M} UTC  {ip:<16} {version}"
+        for when, ip, version, _ in recent
+    ])
+
+if other:
+    block("Прочие запросы", [f"{uri}: {n}" for uri, n in other.most_common(5)])
