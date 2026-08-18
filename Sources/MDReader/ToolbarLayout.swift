@@ -15,14 +15,6 @@ final class ToolbarLayout: ObservableObject {
 
     private var clusters: [String: CGFloat] = [:]
 
-    // Which clusters still fit, dropped widest-luxury first. The thresholds are
-    // set against the range the pane can actually reach: the window will not go
-    // below 820 pt, so the pane only gets tight when the sidebar is dragged wide,
-    // bottoming out near 400 pt.
-    var showsSearch: Bool { detailWidth >= 420 }
-    var showsFontSize: Bool { detailWidth >= 500 }
-    var showsProgress: Bool { detailWidth >= 620 }
-
     func reportDetailWidth(_ width: CGFloat) {
         guard abs(detailWidth - width) > 0.5 else { return }
         detailWidth = width

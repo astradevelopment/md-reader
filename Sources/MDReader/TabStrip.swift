@@ -10,9 +10,16 @@ struct TabStrip: View {
     @ObservedObject var layout: ToolbarLayout
     let hover: TabHoverState
 
-    private static let tabWidth: CGFloat = 150
+    private static let maxTabWidth: CGFloat = 150
+    private static let minTabWidth: CGFloat = 70
     private static let spacing: CGFloat = 3
     private static let buttonWidth: CGFloat = 24
+
+    /// Tabs are what gives way when the toolbar runs short: they narrow first and
+    /// only then start collapsing into the overflow menu.
+    private var tabWidth: CGFloat {
+        min(Self.maxTabWidth, max(Self.minTabWidth, layout.availableForTabs - 60))
+    }
 
     var body: some View {
         let split = split()
@@ -25,7 +32,7 @@ struct TabStrip: View {
                     fullName: document.fileName,
                     isSelected: document.id == store.selectedID,
                     showsClose: store.documents.count > 1,
-                    fixedWidth: store.documents.count > 1 ? Self.tabWidth : nil,
+                    fixedWidth: store.documents.count > 1 ? tabWidth : nil,
                     hover: hover,
                     onSelect: { store.select(document.id) },
                     onClose: { store.close(document.id) }
@@ -48,7 +55,7 @@ struct TabStrip: View {
     private var capacity: Int {
         TabSplit.capacity(
             available: layout.availableForTabs,
-            tabWidth: Self.tabWidth,
+            tabWidth: tabWidth,
             spacing: Self.spacing,
             buttonWidth: Self.buttonWidth
         )

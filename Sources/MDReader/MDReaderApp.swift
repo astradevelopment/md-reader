@@ -31,7 +31,10 @@ struct MDReaderApp: App {
         // scene lets macOS restore several of them at once.
         Window("MD Reader", id: "reader") {
             ContentView(store: store)
-                .frame(minWidth: 820, minHeight: 600)
+                // Wide enough that search, text size and progress always fit,
+                // measured at their widest: 578 pt of clusters, 72 pt of toolbar
+                // chrome and room for a tab beside them.
+                .frame(minWidth: 1120, minHeight: 600)
                 .onAppear {
                     NSWindow.allowsAutomaticWindowTabbing = false
                 }

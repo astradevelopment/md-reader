@@ -13,15 +13,15 @@ struct ContentView: View {
 
     @State private var scrollRequest: ScrollRequest?
     @State private var scrollToken = 0
-    /// Observed, unlike the other helpers: the toolbar's own contents depend on
-    /// how much room is left.
-    @StateObject private var toolbarLayout = ToolbarLayout()
+    /// Unobserved here: only the tab strip cares how much room is left.
+    @State private var toolbarLayout = ToolbarLayout()
     @State private var tabHover = TabHoverState()
 
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 420)
+                // Capped so that even at its widest the pane still fits the toolbar.
+            .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 320)
         } detail: {
             ZStack(alignment: .topLeading) {
                 detail
@@ -132,42 +132,29 @@ struct ContentView: View {
             // window's edge.
             ToolbarSpacer(.flexible, placement: .primaryAction)
 
-            // An item holding an empty stack measures as zero-width, which AppKit
-            // complains about — so at the narrowest sizes there is no item at all.
-            if showsAnyCluster {
-                ToolbarItem(placement: .primaryAction) {
-                    controlClusters
-                }
-                .sharedBackgroundVisibility(.hidden)
+            ToolbarItem(placement: .primaryAction) {
+                controlClusters
             }
-        } else if showsAnyCluster {
+            .sharedBackgroundVisibility(.hidden)
+        } else {
             ToolbarItem(placement: .primaryAction) {
                 controlClusters
             }
         }
     }
 
-    private var showsAnyCluster: Bool {
-        toolbarLayout.showsSearch || toolbarLayout.showsFontSize || toolbarLayout.showsProgress
-    }
-
-    /// All three capsules in a single toolbar item.
+    /// All three capsules in a single toolbar item — search, text size, progress.
     ///
     /// As separate items, a narrow window let NSToolbar sweep them into its own
-    /// overflow popover, where a glass capsule renders as a mangled control. One
-    /// item leaves the decision here: clusters drop out on their own, widest
-    /// luxury first, before the toolbar ever has cause to overflow.
+    /// overflow popover, where a glass capsule renders as a mangled control. As
+    /// one item there is nothing to redistribute, and none of the three ever goes
+    /// away: the window's minimum width guarantees room for the widest state, and
+    /// the tabs give way first.
     private var controlClusters: some View {
         HStack(spacing: 8) {
-            if toolbarLayout.showsSearch {
-                SearchBar(search: search, onJump: jumpToCurrentMatch)
-            }
-            if toolbarLayout.showsFontSize {
-                FontSizeControl(settings: settings)
-            }
-            if toolbarLayout.showsProgress {
-                ProgressPill(state: progressState)
-            }
+            SearchBar(search: search, onJump: jumpToCurrentMatch)
+            FontSizeControl(settings: settings)
+            ProgressPill(state: progressState)
         }
         .measureCluster("controls", into: toolbarLayout)
     }
