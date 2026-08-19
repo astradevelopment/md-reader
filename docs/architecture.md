@@ -58,6 +58,11 @@ flowchart LR
 - **Состояние скролла вне дерева документа.** `ProgressState` и `SectionState` —
   отдельные объекты; за ними следят только полоска прогресса и оглавление, а не
   читалка.
+- **Позиция чтения переживает выход.** `DocumentStore.persistScrollPositions`
+  складывает в `UserDefaults` идентификатор верхнего блока и долю прокрутки для
+  каждого файла. Пишем и при выходе, и при потере фокуса: обработчик выхода —
+  ненадёжная точка, поэтому в `Info.plist` обязаны стоять
+  `NSSupportsSuddenTermination` и `NSSupportsAutomaticTermination` в `false`.
 
 ## Тулбар
 

@@ -9,6 +9,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated { DocumentStore.shared.restoreSession() }
     }
 
+    /// Переключились на другое приложение — тоже повод записать позицию: это
+    /// случается несопоставимо чаще выхода, и переживает даже принудительное
+    /// завершение.
+    func applicationDidResignActive(_ notification: Notification) {
+        MainActor.assumeIsolated { DocumentStore.shared.persistScrollPositions() }
+    }
+
     /// Quitting is when the reading position matters most, and it is the one
     /// moment nothing else was writing it down.
     func applicationWillTerminate(_ notification: Notification) {

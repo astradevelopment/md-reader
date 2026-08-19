@@ -22,9 +22,9 @@
     <key>CFBundleIdentifier</key>
     <string>com.denis.mdreader</string>
     <key>CFBundleVersion</key>
-    <string>29</string>
+    <string>30</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.5.5</string>
+    <string>1.5.6</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundlePackageType</key>
@@ -35,10 +35,13 @@
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <!-- Обе false: у приложения есть что записать при выходе — позиция чтения
+         каждой вкладки. Обещание «меня можно завершить внезапно» разрешает
+         системе убить процесс, не дав отработать обработчику завершения. -->
     <key>NSSupportsAutomaticTermination</key>
-    <true/>
+    <false/>
     <key>NSSupportsSuddenTermination</key>
-    <true/>
+    <false/>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.productivity</string>
     <key>CFBundleDocumentTypes</key>
