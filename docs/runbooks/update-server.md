@@ -11,7 +11,8 @@
 ```
 /home/claude/md-reader-updates/     раздаётся Caddy
     MD-Reader-<версия>.dmg          по одному на выпуск, старые не удаляются
-    latest.dmg                      ссылка на текущий — это адрес для людей
+    md-reader.dmg                   ссылка на текущий — это адрес для людей
+    latest.dmg                      та же ссылка, оставлена для совместимости
     appcast.json                    это читает приложение
     index.html                      страница загрузки
     icon.png
@@ -25,7 +26,7 @@
 
 ```
 https://md.dmind.pro/             страница
-https://md.dmind.pro/latest.dmg   прямая ссылка, не меняется между выпусками
+https://md.dmind.pro/md-reader.dmg  прямая ссылка, не меняется между выпусками
 https://md.dmind.pro/appcast.json фид для приложения
 ```
 

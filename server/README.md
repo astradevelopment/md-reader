@@ -8,7 +8,8 @@ moved by repointing DNS without stranding copies already installed.
 
     /home/claude/md-reader-updates/     served by Caddy
         MD-Reader-<version>.dmg         one per release, older ones kept
-        latest.dmg                      symlink to the current one — the link to hand out
+        md-reader.dmg                   symlink to the current one — the link to hand out
+    latest.dmg                      the same, kept so older links keep working
         appcast.json                    what the app reads
         index.html                      the download page
         icon.png
@@ -33,7 +34,7 @@ Caddy issues and renews the certificate itself; there is no certbot.
 
 Then repoint the permanent link, which is what people are given:
 
-    ssh dmind 'ln -sfn MD-Reader-<version>.dmg ~/md-reader-updates/latest.dmg'
+    ssh dmind 'cd ~/md-reader-updates && ln -sfn MD-Reader-<version>.dmg md-reader.dmg && ln -sfn MD-Reader-<version>.dmg latest.dmg'
 
 The app checks the feed quietly at launch, at most once a day. The page reads
 the same feed, so its version number never needs editing.
@@ -41,7 +42,7 @@ the same feed, so its version number never needs editing.
 ## Links
 
     https://md.dmind.pro/             the page
-    https://md.dmind.pro/latest.dmg   direct download, unchanged across releases
+    https://md.dmind.pro/md-reader.dmg  direct download, unchanged across releases
 
 ## Statistics
 

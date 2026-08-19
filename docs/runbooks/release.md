@@ -45,11 +45,12 @@ ssh dmind "cat > ~/md-reader-updates/appcast.json" <<JSON
 }
 JSON
 
-ssh dmind "ln -sfn MD-Reader-$V.dmg ~/md-reader-updates/latest.dmg"
+ssh dmind "cd ~/md-reader-updates && ln -sfn MD-Reader-$V.dmg md-reader.dmg && ln -sfn MD-Reader-$V.dmg latest.dmg"
 ```
 
-Старые образы не удалять: `latest.dmg` — символическая ссылка, а прежние версии
-остаются доступны по прямым адресам.
+Старые образы не удалять: `md-reader.dmg` — символическая ссылка, а прежние версии
+остаются доступны по прямым адресам. `latest.dmg` ведёт туда же и сохранён на
+случай, если старая ссылка кому-то уже отдана.
 
 ## 4. Проверить снаружи
 
@@ -57,7 +58,7 @@ ssh dmind "ln -sfn MD-Reader-$V.dmg ~/md-reader-updates/latest.dmg"
 
 ```bash
 ssh praxius 'curl -s https://md.dmind.pro/appcast.json'
-ssh praxius 'curl -sL -o /tmp/l.dmg https://md.dmind.pro/latest.dmg && sha256sum /tmp/l.dmg'
+ssh praxius 'curl -sL -o /tmp/l.dmg https://md.dmind.pro/md-reader.dmg && sha256sum /tmp/l.dmg'
 shasum -a 256 "MD Reader.dmg"
 ```
 
