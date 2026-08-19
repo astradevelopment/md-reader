@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MD Reader</title>
+<link rel="icon" href="icon.png">
+<style>
+  :root {
+    --ink: #1d1d1f;
+    --muted: #6e6e73;
+    --line: rgba(0,0,0,.10);
+    --sheet: #ffffff;
+    --page: #f5f5f7;
+    --accent: #0071e3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #f5f5f7; --muted: #98989d; --line: rgba(255,255,255,.14);
+      --sheet: #1c1c1e; --page: #000; --accent: #0a84ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 17px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: grid; place-items: center; padding: 6vh 1.5rem;
+  }
+  main { width: 100%; max-width: 30rem; text-align: center; }
+  img.icon { width: 104px; height: 104px; border-radius: 23%; }
+  h1 { font-size: 2.1rem; letter-spacing: -.02em; margin: 1.1rem 0 .4rem; font-weight: 700; }
+  p.lead { color: var(--muted); margin: 0 0 1.8rem; font-size: 1.05rem; }
+  a.get {
+    display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+    font-weight: 600; font-size: 1rem; padding: .8rem 2rem; border-radius: 980px;
+    transition: opacity .15s;
+  }
+  a.get:hover { opacity: .85; }
+  p.meta { color: var(--muted); font-size: .85rem; margin: .9rem 0 0; }
+  ul.what {
+    list-style: none; padding: 0; margin: 2.4rem 0 0; text-align: left;
+    background: var(--sheet); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden;
+  }
+  ul.what li { padding: .75rem 1.1rem; border-top: 1px solid var(--line); font-size: .95rem; }
+  ul.what li:first-child { border-top: 0; }
+  details {
+    margin-top: 1.4rem; text-align: left; background: var(--sheet);
+    border: 1px solid var(--line); border-radius: 14px; padding: .85rem 1.1rem;
+    font-size: .9rem;
+  }
+  summary { cursor: pointer; color: var(--muted); }
+  code {
+    display: block; margin-top: .7rem; padding: .7rem .85rem; border-radius: 8px;
+    background: var(--page); font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-x: auto; user-select: all;
+  }
+</style>
+
+<main>
+  <img class="icon" src="icon.png" alt="">
+  <h1>MD Reader</h1>
+  <p class="lead">Читалка Markdown для Mac. Не редактор — открывает <code
+     style="display:inline;padding:.1em .35em;background:var(--sheet);border:1px solid var(--line)">.md</code>
+     и не мешает читать.</p>
+
+  <a class="get" href="latest.dmg" download>Скачать для Mac</a>
+  <p class="meta"><span id="meta">macOS 15 или новее</span></p>
+
+  <ul class="what">
+    <li>Оглавление сбоку и отметка, где вы читаете</li>
+    <li>Вкладки в одном окне, у каждой своя позиция</li>
+    <li>Поиск по документу с подсветкой абзаца</li>
+    <li>Обновляется само</li>
+  </ul>
+
+  <details>
+    <summary>Первый запуск macOS заблокирует — что делать</summary>
+    <p>Приложение подписано ad-hoc, без сертификата Apple. Перетащите его
+       в «Программы» и один раз выполните в Терминале:</p>
+    <code>xattr -dr com.apple.quarantine "/Applications/MD Reader.app"</code>
+    <p style="margin-bottom:0">Дальше обновления ставятся сами — повторять не нужно.</p>
+  </details>
+</main>
+
+<script>
+  fetch('appcast.json', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(j => {
+      document.getElementById('meta').textContent =
+        'Версия ' + j.version + ' · macOS 15 или новее';
+    })
+    .catch(() => {});
+</script>
+</html>
