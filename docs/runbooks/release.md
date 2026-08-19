@@ -8,9 +8,9 @@
 
 ```xml
 <key>CFBundleVersion</key>            <!-- целое, +1 -->
-<string>29</string>
+<string>30</string>
 <key>CFBundleShortVersionString</key> <!-- то, что видит человек -->
-<string>1.5.5</string>
+<string>1.5.6</string>
 ```
 
 `CFBundleShortVersionString` — это то, что приложение сравнивает с полем
@@ -33,7 +33,7 @@
 ## 3. Опубликовать
 
 ```bash
-V=1.5.5
+V=1.5.6
 scp "MD Reader.dmg" dmind:~/md-reader-updates/MD-Reader-$V.dmg
 ssh dmind "chmod 644 ~/md-reader-updates/MD-Reader-$V.dmg"
 
