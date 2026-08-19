@@ -16,6 +16,10 @@ final class DocumentStore: ObservableObject {
     private static let openFilesKey = "session.openFiles"
     private static let selectedFileKey = "session.selectedFile"
     private static let recentFilesKey = "recent.files"
+    /// Where each file was left, by path: which block was at the top, and how far
+    /// through it the reader had got.
+    private static let scrollKey = "session.scrollPositions"
+    private static let progressKey = "session.scrollProgress"
     private let maxRecent = 15
 
     var selected: MarkdownDocument? {
@@ -138,6 +142,8 @@ final class DocumentStore: ObservableObject {
 
         let defaults = UserDefaults.standard
         let paths = defaults.stringArray(forKey: Self.openFilesKey) ?? []
+        let savedBlocks = defaults.dictionary(forKey: Self.scrollKey) as? [String: String] ?? [:]
+        let savedProgress = defaults.dictionary(forKey: Self.progressKey) as? [String: Double] ?? [:]
 
         for path in paths where FileManager.default.fileExists(atPath: path) {
             // Silently skip unreadable files: a restore must never open an alert.
@@ -145,6 +151,15 @@ final class DocumentStore: ObservableObject {
             guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
             let document = MarkdownDocument()
             document.adopt(text: text, url: url)
+
+            // Put the reader back where it was left. A block identifier is derived
+            // from the heading it sits under and its position within that section,
+            // so it survives a relaunch — but not an edit to the file above it, in
+            // which case the identifier simply will not be found and the document
+            // opens at the top.
+            document.lastBlockID = savedBlocks[path]
+            document.lastProgress = savedProgress[path] ?? 0
+
             documents.append(document)
         }
 
@@ -166,6 +181,25 @@ final class DocumentStore: ObservableObject {
         let defaults = UserDefaults.standard
         defaults.set(documents.compactMap { $0.url?.path }, forKey: Self.openFilesKey)
         defaults.set(selected?.url?.path, forKey: Self.selectedFileKey)
+        persistScrollPositions()
+    }
+
+    /// Reading positions are written on their own as well, because they change
+    /// while nothing else about the session does — and the moment that matters
+    /// most is quitting.
+    func persistScrollPositions() {
+        var blocks: [String: String] = [:]
+        var progress: [String: Double] = [:]
+
+        for document in documents {
+            guard let path = document.url?.path else { continue }
+            if let block = document.lastBlockID { blocks[path] = block }
+            progress[path] = document.lastProgress
+        }
+
+        let defaults = UserDefaults.standard
+        defaults.set(blocks, forKey: Self.scrollKey)
+        defaults.set(progress, forKey: Self.progressKey)
     }
 
     // MARK: - Recents

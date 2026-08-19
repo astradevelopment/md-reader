@@ -9,6 +9,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated { DocumentStore.shared.restoreSession() }
     }
 
+    /// Quitting is when the reading position matters most, and it is the one
+    /// moment nothing else was writing it down.
+    func applicationWillTerminate(_ notification: Notification) {
+        MainActor.assumeIsolated { DocumentStore.shared.persistScrollPositions() }
+    }
+
     /// SwiftUI's `onOpenURL` only ever delivers one file; this receives the whole set.
     func application(_ application: NSApplication, open urls: [URL]) {
         MainActor.assumeIsolated { DocumentStore.shared.openAll(urls) }
