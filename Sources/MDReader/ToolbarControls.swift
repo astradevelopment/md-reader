@@ -95,25 +95,21 @@ struct FontSizeControl: View {
     /// Always a live field with a fixed "%" beside it — never a label that swaps
     /// into an editor. A toolbar text field does not reliably report losing focus,
     /// so a mode switch would strand the control in its editing state.
+    /// One control, not a field with a label beside it.
+    ///
+    /// The number lives in an NSTextField, which dims by itself when the window
+    /// stops being key; a SwiftUI Text does not. Side by side, the per cent sign
+    /// stayed bright while the digits went grey. Formatting the sign into the
+    /// field's own value leaves nothing to fall out of step.
     private var percentField: some View {
-        HStack(spacing: 0) {
-            TextField(
-                "",
-                value: $settings.percent,
-                format: .number.precision(.fractionLength(0))
-            )
+        TextField("", value: $settings.percent, format: PercentFormat())
             .textFieldStyle(.plain)
-            .multilineTextAlignment(.trailing)
+            .multilineTextAlignment(.center)
             .font(.system(size: 11, design: .rounded).monospacedDigit())
             .foregroundStyle(.primary)
-            .frame(width: 26)
+            .frame(width: 42)
             .focused($focused)
             .onSubmit { focused = false }
-
-            Text(verbatim: "%")
-                .font(.system(size: 11, design: .rounded))
-                .foregroundStyle(.secondary)
-        }
         .padding(.horizontal, 5)
         .frame(height: ToolbarMetrics.contentHeight)
         .background(
@@ -223,4 +219,22 @@ struct SearchBar: View {
         _ = forward ? search.next() : search.previous()
         onJump()
     }
+}
+
+/// Shows a number as "120%" and reads one back from whatever was typed —
+/// "120", "120%", "120 %", a comma for the point.
+struct PercentFormat: ParseableFormatStyle {
+    struct Strategy: ParseStrategy {
+        func parse(_ value: String) throws -> Double {
+            let digits = value
+                .filter { $0.isNumber || $0 == "." || $0 == "," }
+                .replacingOccurrences(of: ",", with: ".")
+            guard let number = Double(digits) else { throw CocoaError(.formatting) }
+            return number
+        }
+    }
+
+    var parseStrategy: Strategy { Strategy() }
+
+    func format(_ value: Double) -> String { "\(Int(value.rounded()))%" }
 }
