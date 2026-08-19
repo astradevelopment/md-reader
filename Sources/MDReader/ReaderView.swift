@@ -148,7 +148,6 @@ private struct BlocksStack: View, Equatable {
             ForEach(Array(blocks.enumerated()), id: \.element.id) { index, block in
                 Markdown(block.markdown)
                     .markdownTheme(theme)
-                    .textSelection(.enabled)
                     .background(FlashBackdrop(blockID: block.id, state: flash))
                     .id(block.id)
                     .padding(
@@ -159,6 +158,10 @@ private struct BlocksStack: View, Equatable {
                     )
             }
         }
+        // On the stack rather than on each block: a selection cannot cross from
+        // one view into another, so the fewer selection roots there are, the more
+        // of the document a drag can take in.
+        .textSelection(.enabled)
         .scrollTargetLayout()
         .frame(maxWidth: maxContentWidth, alignment: .leading)
         .padding(.horizontal, horizontalPadding)

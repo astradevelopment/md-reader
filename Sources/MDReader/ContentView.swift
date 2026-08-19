@@ -67,6 +67,11 @@ struct ContentView: View {
             guard store.selected != nil else { return }
             search.isPresented = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .mdrCopyDocument)) { _ in
+            guard let text = store.selected?.content, !text.isEmpty else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .mdrFindNext)) { _ in
             guard search.isPresented else { return }
             search.next()

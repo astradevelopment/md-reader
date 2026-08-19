@@ -28,4 +28,5 @@ extension Notification.Name {
     static let mdrFind = Notification.Name("mdr.find")
     static let mdrFindNext = Notification.Name("mdr.findNext")
     static let mdrFindPrevious = Notification.Name("mdr.findPrevious")
+    static let mdrCopyDocument = Notification.Name("mdr.copyDocument")
 }

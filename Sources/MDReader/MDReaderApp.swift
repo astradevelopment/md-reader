@@ -88,6 +88,13 @@ struct MDReaderApp: App {
             }
             CommandGroup(after: .pasteboard) {
                 Divider()
+                Button("Copy Whole Document") {
+                    NotificationCenter.default.post(name: .mdrCopyDocument, object: nil)
+                }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+
+                Divider()
+
                 Button("Find…") {
                     NotificationCenter.default.post(name: .mdrFind, object: nil)
                 }

@@ -80,3 +80,4 @@
 "The disk image did not contain an app." = "В образе не оказалось приложения.";
 "The downloaded app looks incomplete." = "Загруженное приложение выглядит неполным.";
 "%@ failed." = "Команда %@ завершилась с ошибкой.";
+"Copy Whole Document" = "Скопировать весь документ";
