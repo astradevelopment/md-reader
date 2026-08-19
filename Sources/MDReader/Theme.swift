@@ -160,7 +160,16 @@ extension Theme {
         }
         .listItem { config in
             config.label
-                .markdownMargin(top: 0, bottom: 6)
+                // Top, not bottom. In a tight list — items with no blank line
+                // between them, which is how these documents are written —
+                // MarkdownUI discards the predecessor's bottom margin outright
+                // and spaces items by the top margin of the one that follows. A
+                // bottom margin here had no effect at all, at 6 pt or at 40.
+                //
+                // The value is close to twice the line spacing inside a
+                // paragraph, so a bullet visibly ends before the next begins
+                // rather than running on as one block of text.
+                .markdownMargin(top: 10, bottom: 0)
         }
         .taskListMarker { config in
             Image(systemName: config.isCompleted ? "checkmark.square.fill" : "square")
