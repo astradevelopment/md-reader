@@ -139,26 +139,28 @@ private struct OpenMenu: View {
     }
 }
 
+/// The tabs that did not fit, with a look inside each.
+///
+/// A popover rather than a `Menu`: menu items cannot report hover, and these are
+/// exactly the documents whose names are cut hardest — the ones most in need of a
+/// glance at their contents. The preview sits in the same popover, beside the
+/// list, so it needs no window coordinates to place itself.
 private struct OverflowMenu: View {
     let documents: [MarkdownDocument]
     let selectedID: UUID?
     let onSelect: (UUID) -> Void
 
     @State private var hovering = false
+    @State private var showing = false
+    @State private var previewed: UUID?
+
+    private let listWidth: CGFloat = 230
+    private let previewWidth: CGFloat = 300
+    private let previewHeight: CGFloat = 240
 
     var body: some View {
-        Menu {
-            ForEach(documents) { document in
-                Button {
-                    onSelect(document.id)
-                } label: {
-                    if document.id == selectedID {
-                        Label(document.fileName, systemImage: "checkmark")
-                    } else {
-                        Text(document.fileName)
-                    }
-                }
-            }
+        Button {
+            showing.toggle()
         } label: {
             HStack(spacing: 1) {
                 Text(verbatim: "\(documents.count)")
@@ -170,14 +172,74 @@ private struct OverflowMenu: View {
             .frame(width: 30, height: ToolbarMetrics.contentHeight)
             .contentShape(Capsule())
             .background(
-                Capsule().fill(Color.primary.opacity(hovering ? 0.1 : 0))
+                Capsule().fill(Color.primary.opacity(hovering || showing ? 0.1 : 0))
             )
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
+        .buttonStyle(.plain)
         .frame(width: 30)
         .onHover { hovering = $0 }
         .help("\(documents.count) more open")
+        .popover(isPresented: $showing, arrowEdge: .bottom) { panel }
+        .onChange(of: showing) { _, isOpen in
+            // Open on the document the pointer will most likely want: the one
+            // already in front if it is in here, otherwise the first.
+            if isOpen { previewed = selectedID.flatMap(idIfPresent) ?? documents.first?.id }
+        }
+    }
+
+    private var panel: some View {
+        HStack(alignment: .top, spacing: 0) {
+            VStack(alignment: .leading, spacing: 1) {
+                ForEach(documents) { document in
+                    row(document)
+                }
+            }
+            .padding(6)
+            .frame(width: listWidth, alignment: .leading)
+
+            if let document = documents.first(where: { $0.id == previewed }),
+               !document.blocks.isEmpty {
+                Divider()
+                TabPreviewPage(
+                    blocks: Array(document.blocks.prefix(14)),
+                    width: previewWidth,
+                    height: previewHeight
+                )
+                .padding(8)
+            }
+        }
+        .frame(height: previewHeight + 16)
+    }
+
+    private func row(_ document: MarkdownDocument) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 9, weight: .semibold))
+                .opacity(document.id == selectedID ? 1 : 0)
+            Text(document.fileName)
+                .font(.system(size: 12))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .contentShape(Rectangle())
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.primary.opacity(previewed == document.id ? 0.08 : 0))
+        )
+        .onHover { inside in
+            if inside { previewed = document.id }
+        }
+        .onTapGesture {
+            onSelect(document.id)
+            showing = false
+        }
+    }
+
+    private func idIfPresent(_ id: UUID) -> UUID? {
+        documents.contains { $0.id == id } ? id : nil
     }
 }
 
@@ -316,7 +378,7 @@ struct TabTooltipLayer: View {
                 .padding(.horizontal, 2)
 
             if !info.opening.isEmpty {
-                preview(info.opening)
+                TabPreviewPage(blocks: info.opening, width: cardWidth - 24, height: previewHeight)
             }
         }
         .padding(12)
@@ -328,9 +390,33 @@ struct TabTooltipLayer: View {
         .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
     }
 
-    /// The document at a size where a screenful fits in a card, cut off at the
-    /// bottom with a fade rather than a hard edge.
-    private func preview(_ blocks: [MarkdownDocument.Block]) -> some View {
+    private var gapBelowTab: CGFloat { 4 }
+
+    /// Centred under the tab, nudged inwards so it never runs off either edge.
+    private func cardX(info: TabHoverState.Info, in geo: GeometryProxy) -> CGFloat {
+        let centre = info.anchor.midX - geo.frame(in: .global).minX
+        let leading = centre - cardWidth / 2
+        let limit = max(8, geo.size.width - cardWidth - 8)
+        return min(max(leading, 8), limit)
+    }
+}
+
+/// The opening of a document, small enough that a screenful fits, cut off at the
+/// bottom with a fade rather than a hard edge.
+///
+/// Shared by the tab tooltip and the overflow menu: a tab that no longer fits on
+/// the strip is exactly the one whose name is cut hardest, so a glance at what is
+/// inside it is worth more there, not less.
+struct TabPreviewPage: View {
+    let blocks: [MarkdownDocument.Block]
+    let width: CGFloat
+    let height: CGFloat
+
+    /// The margins of the little page, so it reads as a document rather than as
+    /// text pressed against a box.
+    private let pageInset: CGFloat = 16
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(blocks) { block in
                 Markdown(block.markdown)
@@ -338,8 +424,8 @@ struct TabTooltipLayer: View {
             }
         }
         .padding(pageInset)
-        .frame(width: cardWidth - 24, alignment: .leading)
-        .frame(height: previewHeight, alignment: .top)
+        .frame(width: width, alignment: .leading)
+        .frame(height: height, alignment: .top)
         .clipped()
         .mask(
             LinearGradient(
@@ -360,15 +446,5 @@ struct TabTooltipLayer: View {
             RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
         )
-    }
-
-    private var gapBelowTab: CGFloat { 4 }
-
-    /// Centred under the tab, nudged inwards so it never runs off either edge.
-    private func cardX(info: TabHoverState.Info, in geo: GeometryProxy) -> CGFloat {
-        let centre = info.anchor.midX - geo.frame(in: .global).minX
-        let leading = centre - cardWidth / 2
-        let limit = max(8, geo.size.width - cardWidth - 8)
-        return min(max(leading, 8), limit)
     }
 }
