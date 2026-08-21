@@ -59,11 +59,10 @@ struct TabStrip: View {
 
             OpenMenu(store: store)
         }
-        // A hard ceiling, not just an arithmetic one. If the strip's intrinsic
-        // width ever exceeded what the toolbar has left, the toolbar would take
-        // the whole item into its own overflow popover — tab pills rendered
-        // inside a system menu — instead of letting them collapse into the
-        // chevron of their own.
+        // A ceiling, not a demand. A fixed width makes the item ask for exactly
+        // this much and the controls then lose their place; a ceiling lets the
+        // strip take only what its pills need, and `TabSplit.fitting` has already
+        // chosen a number of pills that stays inside it.
         .frame(maxWidth: max(60, layout.availableForTabs), alignment: .leading)
         .animation(.snappy(duration: 0.2), value: store.documents.count)
     }

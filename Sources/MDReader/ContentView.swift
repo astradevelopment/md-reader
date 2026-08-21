@@ -55,6 +55,7 @@ struct ContentView: View {
             // applied once things have settled.
             ToolbarPriority.apply()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { ToolbarPriority.apply() }
+            watchToolbar()
         }
         // SwiftUI rebuilds the toolbar's items whenever their set changes, and a
         // rebuilt item comes back at the standard priority.
@@ -138,11 +139,13 @@ struct ContentView: View {
         if #available(macOS 26.0, *) {
             ToolbarItem(placement: .navigation) {
                 TabStrip(store: store, layout: toolbarLayout, hover: tabHover)
+                    .id(toolbarLayout.rebuildToken)
             }
             .sharedBackgroundVisibility(.hidden)
         } else {
             ToolbarItem(placement: .navigation) {
                 TabStrip(store: store, layout: toolbarLayout, hover: tabHover)
+                    .id(toolbarLayout.rebuildToken)
             }
         }
     }
@@ -185,6 +188,22 @@ struct ContentView: View {
     }
 
     // MARK: - Actions
+
+    /// Watches whether the tabs are still on the toolbar rather than inside its
+    /// popover, and hands the answer to the layout so it can give room back.
+    ///
+    /// Polled rather than observed: `visibleItems` has no notification, and the
+    /// toolbar re-decides on window resize, on the search field opening, and on
+    /// tabs being added — a timer covers all of them without hooking each.
+    private func watchToolbar() {
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            MainActor.assumeIsolated {
+                if let visible = ToolbarPriority.tabsAreVisible() {
+                    toolbarLayout.noteTabs(visible: visible)
+                }
+            }
+        }
+    }
 
     /// Re-points the shared reader state at whichever tab is now in front.
     private func adoptSelection() {

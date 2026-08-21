@@ -15,6 +15,25 @@ import AppKit
 /// tabs first, the controls last.
 @MainActor
 enum ToolbarPriority {
+    /// Whether the tabs are among what the toolbar is actually showing.
+    ///
+    /// `visibleItems` is the honest answer: an item swept into the toolbar's own
+    /// popover stays in `items` but leaves `visibleItems`. That state used to be
+    /// permanent — the strip had no way to learn it had been taken away, and the
+    /// window stayed with its tabs inside a system menu until it was resized.
+    static func tabsAreVisible() -> Bool? {
+        for window in NSApp.windows {
+            guard let toolbar = window.toolbar, window.isVisible else { continue }
+            let ours = toolbar.items.filter { UUID(uuidString: $0.itemIdentifier.rawValue) != nil }
+            guard let tabs = ours.first, ours.count > 1 else { continue }
+            guard let visible = toolbar.visibleItems else { return nil }
+            // By identifier: the toolbar is free to vend a different item object
+            // for display, and comparing objects then answers "hidden" forever.
+            return visible.contains { $0.itemIdentifier == tabs.itemIdentifier }
+        }
+        return nil
+    }
+
     static func apply() {
         for window in NSApp.windows {
             guard let toolbar = window.toolbar else { continue }
