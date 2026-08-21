@@ -49,9 +49,13 @@ final class ToolbarLayout: ObservableObject {
 
     private func recompute() {
         let controls = max(controlsWidth, Self.controlsReserve)
-        // Never more than half the pane either: the tabs are the part that can
-        // afford to give way.
-        let value = min(max(60, detailWidth - controls - Self.chrome), detailWidth * 0.5)
+        // The strip runs up to the controls, not to half the pane. Half was a
+        // guess that bound long before the arithmetic did: on a 921 pt pane the
+        // subtraction left 609 and the fraction cut it to 460, hiding a fourth
+        // tab while a third of the toolbar stood empty. What protects the
+        // controls is the reserve above and `ToolbarPriority`, not this ceiling —
+        // it stays only so a narrow pane cannot be taken over entirely.
+        let value = min(max(60, detailWidth - controls - Self.chrome), detailWidth * 0.85)
         // A coarse threshold: the search field animates its width open and shut,
         // and republishing every frame of that would churn the whole toolbar.
         guard abs(value - availableForTabs) > 8 else { return }
