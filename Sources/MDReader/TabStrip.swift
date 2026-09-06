@@ -291,17 +291,21 @@ private struct OverflowMenu: View {
             onSelect(document.id)
             showing = false
         }
-        .contextMenu {
-            if document.url != nil {
-                Button("Rename…") {
-                    showing = false
-                    onRename(document.id)
-                }
-                Button("Show in Finder") { onReveal(document.id) }
-                Divider()
-            }
-            Button("Close Tab") { close(document.id) }
+        .overlay { RightClickMenu(items: rowMenu(document)) }
+    }
+
+    private func rowMenu(_ document: MarkdownDocument) -> [RightClickMenu.Item] {
+        var items: [RightClickMenu.Item] = []
+        if document.url != nil {
+            items.append(.button(String(localized: "Rename…")) {
+                showing = false
+                onRename(document.id)
+            })
+            items.append(.button(String(localized: "Show in Finder")) { onReveal(document.id) })
+            items.append(.separator)
         }
+        items.append(.button(String(localized: "Close Tab")) { close(document.id) })
+        return items
     }
 
     /// The panel stays open while there is anything left in it — closing several
@@ -419,16 +423,7 @@ private struct TabPill: View {
             }
         }
         .onTapGesture(perform: onSelect)
-        .contextMenu {
-            if url != nil {
-                Button("Rename…") { beginRename() }
-                Button("Show in Finder") { onReveal() }
-            }
-            if showsClose {
-                Divider()
-                Button("Close Tab", action: onClose)
-            }
-        }
+        .overlay { RightClickMenu(items: menuItems) }
         .popover(isPresented: isRenaming, arrowEdge: .bottom) {
             RenameField(
                 draft: $draft,
@@ -436,6 +431,19 @@ private struct TabPill: View {
                 onCommit: commitRename
             )
         }
+    }
+
+    private var menuItems: [RightClickMenu.Item] {
+        var items: [RightClickMenu.Item] = []
+        if url != nil {
+            items.append(.button(String(localized: "Rename…")) { beginRename() })
+            items.append(.button(String(localized: "Show in Finder"), onReveal))
+        }
+        if showsClose {
+            if !items.isEmpty { items.append(.separator) }
+            items.append(.button(String(localized: "Close Tab"), onClose))
+        }
+        return items
     }
 
     /// True only for the tab this field belongs to; putting it away is what the
