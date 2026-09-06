@@ -52,9 +52,12 @@ struct TabStrip: View {
             }
 
             if !split.overflow.isEmpty {
-                OverflowMenu(documents: split.overflow, selectedID: store.selectedID) { id in
-                    store.select(id)
-                }
+                OverflowMenu(
+                    documents: split.overflow,
+                    selectedID: store.selectedID,
+                    onSelect: { store.select($0) },
+                    onClose: { store.close($0) }
+                )
             }
 
             OpenMenu(store: store)
@@ -149,10 +152,13 @@ private struct OverflowMenu: View {
     let documents: [MarkdownDocument]
     let selectedID: UUID?
     let onSelect: (UUID) -> Void
+    let onClose: (UUID) -> Void
 
     @State private var hovering = false
     @State private var showing = false
     @State private var previewed: UUID?
+    @State private var hoveredRow: UUID?
+    @State private var closeHovering: UUID?
 
     private let listWidth: CGFloat = 230
     private let previewWidth: CGFloat = 300
@@ -212,10 +218,34 @@ private struct OverflowMenu: View {
     }
 
     private func row(_ document: MarkdownDocument) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "checkmark")
-                .font(.system(size: 9, weight: .semibold))
-                .opacity(document.id == selectedID ? 1 : 0)
+        let hovered = hoveredRow == document.id
+
+        return HStack(spacing: 6) {
+            // One slot, two meanings, the way the pills work: the check says
+            // which document is in front, and the cross takes its place on the
+            // row under the pointer. The space is reserved either way, so the
+            // name never shifts.
+            ZStack {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 9, weight: .semibold))
+                    .opacity(document.id == selectedID && !hovered ? 1 : 0)
+
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 15, height: 15)
+                    .background(
+                        Circle().fill(Color.primary.opacity(closeHovering == document.id ? 0.16 : 0))
+                    )
+                    .contentShape(Circle())
+                    .opacity(hovered ? 1 : 0)
+                    .onHover { closeHovering = $0 ? document.id : nil }
+                    // Ahead of the row's own tap, so a click on the cross closes
+                    // rather than selects.
+                    .onTapGesture { close(document.id) }
+            }
+            .frame(width: 15, height: 15)
+
             Text(document.fileName)
                 .font(.system(size: 12))
                 .lineLimit(1)
@@ -230,11 +260,32 @@ private struct OverflowMenu: View {
                 .fill(Color.primary.opacity(previewed == document.id ? 0.08 : 0))
         )
         .onHover { inside in
-            if inside { previewed = document.id }
+            if inside {
+                previewed = document.id
+                hoveredRow = document.id
+            } else if hoveredRow == document.id {
+                hoveredRow = nil
+                closeHovering = nil
+            }
         }
         .onTapGesture {
             onSelect(document.id)
             showing = false
+        }
+    }
+
+    /// The panel stays open while there is anything left in it — closing several
+    /// tabs in a row should not cost a trip back to the chevron. The last one
+    /// takes the panel with it, because the button itself is about to go.
+    private func close(_ id: UUID) {
+        let remaining = documents.filter { $0.id != id }
+        onClose(id)
+        hoveredRow = nil
+        closeHovering = nil
+        if remaining.isEmpty {
+            showing = false
+        } else if previewed == id {
+            previewed = remaining.first?.id
         }
     }
 
