@@ -45,6 +45,13 @@
 /* Tabs */
 "Open a file (⌘O)" = "Открыть файл (⌘O)";
 "%lld more open" = "ещё открыто: %lld";
+"Rename…" = "Переименовать…";
+"Show in Finder" = "Показать в Finder";
+"Couldn’t rename the file" = "Не удалось переименовать файл";
+"A file needs a name." = "У файла должно быть имя.";
+"A name can't contain “/” or “:”." = "В имени не может быть «/» и «:».";
+"A name starting with a dot would hide the file." = "Имя, начинающееся с точки, скроет файл.";
+"“%@” is already taken in that folder." = "«%@» в этой папке уже занято.";
 
 /* Alerts */
 "Couldn't open file" = "Не удалось открыть файл";

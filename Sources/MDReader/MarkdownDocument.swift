@@ -73,6 +73,15 @@ final class MarkdownDocument: ObservableObject, Identifiable {
         self.revision += 1
     }
 
+    /// The same document under a new name. Nothing is read or parsed again, so
+    /// the blocks and the reading position stay exactly where they were — the
+    /// file moved, the document did not change.
+    func rename(to url: URL) {
+        self.url = url
+        self.fileName = url.lastPathComponent
+        self.displayName = url.deletingPathExtension().lastPathComponent
+    }
+
     @discardableResult
     func load(url: URL) -> Bool {
         do {

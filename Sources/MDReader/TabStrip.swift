@@ -11,6 +11,12 @@ struct TabStrip: View {
     @ObservedObject var layout: ToolbarLayout
     let hover: TabHoverState
 
+    /// Which tab is being renamed, held here rather than in the pill: a tab that
+    /// was renamed from the overflow panel is put in front first, and the field
+    /// then has to open on a pill that did not exist a moment ago. One
+    /// identifier also means one field — never two at once.
+    @State private var renamingID: UUID?
+
     private static let maxTabWidth: CGFloat = 240
     /// Below this a tab shows three letters and an ellipsis, which is no use to
     /// anyone. Rather than shrink them all past legibility, the ones that do not
@@ -38,6 +44,7 @@ struct TabStrip: View {
                     id: document.id,
                     title: document.displayName,
                     fullName: document.fileName,
+                    url: document.url,
                     isSelected: document.id == store.selectedID,
                     showsClose: store.documents.count > 1,
                     fixedWidth: store.documents.count > 1 ? tabWidth : nil,
@@ -45,9 +52,12 @@ struct TabStrip: View {
                     // Enough to fill the little page rather than run out halfway
                     // down it — what does not fit is clipped and faded anyway.
                     opening: Array(document.blocks.prefix(14)),
+                    renamingID: $renamingID,
                     onSelect: { store.select(document.id) },
                     onClose: { store.close(document.id) },
-                    onDrop: { dragged in store.move(dragged, onto: document.id) }
+                    onDrop: { dragged in store.move(dragged, onto: document.id) },
+                    onReveal: { store.revealInFinder(document.id) },
+                    onRename: { store.rename(document.id, to: $0) }
                 )
             }
 
@@ -56,7 +66,14 @@ struct TabStrip: View {
                     documents: split.overflow,
                     selectedID: store.selectedID,
                     onSelect: { store.select($0) },
-                    onClose: { store.close($0) }
+                    onClose: { store.close($0) },
+                    onReveal: { store.revealInFinder($0) },
+                    // Renaming happens on the strip, so the tab comes out of the
+                    // panel and into view first.
+                    onRename: { id in
+                        store.select(id)
+                        renamingID = id
+                    }
                 )
             }
 
@@ -153,6 +170,8 @@ private struct OverflowMenu: View {
     let selectedID: UUID?
     let onSelect: (UUID) -> Void
     let onClose: (UUID) -> Void
+    let onReveal: (UUID) -> Void
+    let onRename: (UUID) -> Void
 
     @State private var hovering = false
     @State private var showing = false
@@ -272,6 +291,17 @@ private struct OverflowMenu: View {
             onSelect(document.id)
             showing = false
         }
+        .contextMenu {
+            if document.url != nil {
+                Button("Rename…") {
+                    showing = false
+                    onRename(document.id)
+                }
+                Button("Show in Finder") { onReveal(document.id) }
+                Divider()
+            }
+            Button("Close Tab") { close(document.id) }
+        }
     }
 
     /// The panel stays open while there is anything left in it — closing several
@@ -298,19 +328,26 @@ private struct TabPill: View {
     let id: UUID
     let title: String
     let fullName: String
+    let url: URL?
     let isSelected: Bool
     let showsClose: Bool
     let fixedWidth: CGFloat?
     let hover: TabHoverState
     let opening: [MarkdownDocument.Block]
+    @Binding var renamingID: UUID?
     let onSelect: () -> Void
     let onClose: () -> Void
     let onDrop: (UUID) -> Void
+    let onReveal: () -> Void
+    /// Answers whether the name was accepted: a refused one keeps the field open
+    /// on what was typed, with the alert explaining why beside it.
+    let onRename: (String) -> Bool
 
     @State private var hovering = false
     @State private var closeHovering = false
     @State private var isDropTarget = false
     @State private var frame: CGRect = .zero
+    @State private var draft = ""
 
     /// Room kept on both sides so the title is centred against the whole tab, not
     /// against whatever the close button leaves over.
@@ -373,19 +410,93 @@ private struct TabPill: View {
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
         .onHover { isInside in
             hovering = isInside
-            if isInside {
+            // No preview card while a name is being typed: it would sit in the
+            // same place as the field, over the very thing being edited.
+            if isInside, renamingID == nil {
                 hover.enter(id: id, name: fullName, anchor: frame, opening: opening)
             } else {
                 hover.leave(id: id)
             }
         }
         .onTapGesture(perform: onSelect)
+        .contextMenu {
+            if url != nil {
+                Button("Rename…") { beginRename() }
+                Button("Show in Finder") { onReveal() }
+            }
+            if showsClose {
+                Divider()
+                Button("Close Tab", action: onClose)
+            }
+        }
+        .popover(isPresented: isRenaming, arrowEdge: .bottom) {
+            RenameField(
+                draft: $draft,
+                suffix: url.map(FileRename.suffix) ?? "",
+                onCommit: commitRename
+            )
+        }
+    }
+
+    /// True only for the tab this field belongs to; putting it away is what the
+    /// popover does when it closes itself, by escape or by a click outside.
+    private var isRenaming: Binding<Bool> {
+        Binding(
+            get: { renamingID == id },
+            set: { wanted in
+                if !wanted, renamingID == id { renamingID = nil }
+            }
+        )
+    }
+
+    private func beginRename() {
+        guard let url else { return }
+        draft = FileRename.baseName(of: url)
+        // The card is on screen at this moment — the pointer is on the tab.
+        hover.leave(id: id)
+        renamingID = id
+    }
+
+    private func commitRename() {
+        if onRename(draft) { renamingID = nil }
     }
 
     private var fillOpacity: Double {
         // Solid enough that the title reads clearly against the toolbar's glass.
         if isSelected { return 0.17 }
         return hovering ? 0.06 : 0
+    }
+}
+
+/// The name of the file, on its own, the way Finder offers it: the extension
+/// stays outside the field, so it cannot be lost to a careless keystroke.
+private struct RenameField: View {
+    @Binding var draft: String
+    let suffix: String
+    let onCommit: () -> Void
+
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 1) {
+            TextField("", text: $draft)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
+                .frame(width: 220)
+                .focused($focused)
+                .onSubmit(onCommit)
+
+            if !suffix.isEmpty {
+                Text(verbatim: suffix)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        // Taking focus selects the whole name, which is what typing over it
+        // expects — and what Finder does when a name starts being edited.
+        .onAppear { focused = true }
     }
 }
 

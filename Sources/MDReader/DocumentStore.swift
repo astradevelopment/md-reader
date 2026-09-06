@@ -132,6 +132,82 @@ final class DocumentStore: ObservableObject {
         persistSession()
     }
 
+    // MARK: - The file behind a tab
+
+    /// Renames the file on disk and takes everything that points at it along:
+    /// the tab, the restored session, the recents. The reading position rides on
+    /// the document itself and is written back out under the new path.
+    ///
+    /// Returns whether the tab can stop being edited — a name that was refused
+    /// keeps the field open on what was typed.
+    @discardableResult
+    func rename(_ id: UUID, to typed: String) -> Bool {
+        guard let document = documents.first(where: { $0.id == id }),
+              let url = document.url
+        else { return true }
+
+        let manager = FileManager.default
+        let outcome = FileRename.target(
+            for: url,
+            typed: typed,
+            existing: { manager.fileExists(atPath: $0) }
+        )
+
+        switch outcome {
+        case .success(let target):
+            do {
+                try manager.moveItem(at: url, to: target)
+            } catch {
+                report(String(localized: "Couldn’t rename the file"), detail: error.localizedDescription)
+                return false
+            }
+            document.rename(to: target)
+            renameRecent(from: url, to: target)
+            // Rewrites the open files and the reading positions off the current
+            // URLs, so the old path leaves the session with the old name.
+            persistSession()
+            return true
+
+        // Confirming the name it already has is not a mistake, it is a no-op.
+        case .failure(.unchanged):
+            return true
+
+        case .failure(let problem):
+            report(String(localized: "Couldn’t rename the file"), detail: explain(problem, typed: typed))
+            return false
+        }
+    }
+
+    /// Opens the enclosing folder with the file picked out — the quickest way
+    /// from reading something to attaching it to a message.
+    func revealInFinder(_ id: UUID) {
+        guard let url = documents.first(where: { $0.id == id })?.url else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    private func explain(_ problem: FileRename.Problem, typed: String) -> String {
+        switch problem {
+        case .empty:
+            return String(localized: "A file needs a name.")
+        case .separator:
+            return String(localized: "A name can't contain “/” or “:”.")
+        case .hidden:
+            return String(localized: "A name starting with a dot would hide the file.")
+        case .taken:
+            return String(localized: "“\(typed)” is already taken in that folder.")
+        case .unchanged:
+            return ""
+        }
+    }
+
+    private func report(_ message: String, detail: String) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.informativeText = detail
+        alert.alertStyle = .warning
+        alert.runModal()
+    }
+
     // MARK: - Session
 
     /// Reopens last session's tabs. Runs before any open-file event, so files the
@@ -216,6 +292,21 @@ final class DocumentStore: ObservableObject {
 
         // Still worth telling AppKit: it feeds the Dock's recent-items menu.
         NSDocumentController.shared.noteNewRecentDocumentURL(url)
+        refreshRecentURLs()
+    }
+
+    /// A renamed file keeps its place in the list: it is the same document, and
+    /// the entry under the old path would only ever fail to open.
+    private func renameRecent(from old: URL, to new: URL) {
+        var paths = UserDefaults.standard.stringArray(forKey: Self.recentFilesKey) ?? []
+        if let index = paths.firstIndex(of: old.path) {
+            paths[index] = new.path
+        } else {
+            paths.insert(new.path, at: 0)
+        }
+        paths.removeAll { $0 == old.path }
+        UserDefaults.standard.set(Array(paths.prefix(maxRecent)), forKey: Self.recentFilesKey)
+        NSDocumentController.shared.noteNewRecentDocumentURL(new)
         refreshRecentURLs()
     }
 

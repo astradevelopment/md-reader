@@ -45,6 +45,13 @@
 /* Tabs */
 "Open a file (⌘O)" = "Open a file (⌘O)";
 "%lld more open" = "%lld more open";
+"Rename…" = "Rename…";
+"Show in Finder" = "Show in Finder";
+"Couldn’t rename the file" = "Couldn’t rename the file";
+"A file needs a name." = "A file needs a name.";
+"A name can't contain “/” or “:”." = "A name can't contain “/” or “:”.";
+"A name starting with a dot would hide the file." = "A name starting with a dot would hide the file.";
+"“%@” is already taken in that folder." = "“%@” is already taken in that folder.";
 
 /* Alerts */
 "Couldn't open file" = "Couldn't open file";
